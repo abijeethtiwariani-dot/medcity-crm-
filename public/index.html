@@ -16205,5 +16205,108 @@ body.light #docDashCard{background:linear-gradient(120deg,rgba(244,241,251,.6),r
 })();
 
 </script>
+
+<style id="v52Style">
+/* V52 - entry dashboard (uses V50/V51 styles) */
+#page-pv2 #docDashCard{border-radius:22px}
+
+</style>
+<script id="v52Script">
+(function(){
+  if(window.__V52)return; window.__V52=1;
+  function session(){try{var v=localStorage.getItem('gp-session');return v?JSON.parse(v):null;}catch(e){return null;}}
+
+  /* the glass profile page IS the dashboard now; old dash becomes "Overview" */
+  function rename(){
+    try{
+      if(typeof titles!=='undefined'){
+        if(titles.pv2)titles.pv2=['Dashboard','your day at a glance'];
+        if(titles.dash)titles.dash=['Overview','classic command center'];
+      }
+    }catch(e){}
+    var pv=document.querySelector('.nav-btn[data-page=pv2]'), da=document.querySelector('.nav-btn[data-page=dash]');
+    if(pv&&!/^\s*Dashboard/.test(pv.textContent.replace(/[^A-Za-z ]/g,''))){var s=pv.querySelector('svg');pv.innerHTML=(s?s.outerHTML:'')+'Dashboard';}
+    if(da&&/Dashboard/.test(da.textContent)){var s2=da.querySelector('svg');da.innerHTML=(s2?s2.outerHTML:'')+'Overview';}
+    /* put the new Dashboard nav at the top of the workspace group */
+    if(pv&&da&&da.parentNode&&pv.previousElementSibling!==da.previousElementSibling){da.parentNode.insertBefore(pv,da);}
+  }
+
+  /* pull the live ops cards (doc readiness + fees alert) into the new dashboard */
+  function adopt(){
+    var pg=document.getElementById('page-pv2'); if(!pg)return;
+    var anchor=pg.querySelector('.pv-greet-sub')||pg.querySelector('.v34-head');
+    if(!anchor)return;
+    var fees=document.getElementById('dashFeeAlert');
+    var doc=document.getElementById('docDashCard');
+    if(doc&&doc.parentNode!==pg){anchor.insertAdjacentElement('afterend',doc);doc.style.marginBottom='16px';}
+    if(fees&&fees.parentNode!==pg&&doc){doc.insertAdjacentElement('afterend',fees);fees.style.marginBottom='16px';}
+  }
+
+  /* land on the glass dashboard when the app opens (and right after sign-in) */
+  var landed=false;
+  function land(){
+    if(landed)return;
+    var gate=document.getElementById('authGate');
+    var gateOn=gate&&getComputedStyle(gate).display!=='none';
+    if(gateOn||!session())return;
+    var nav=document.querySelector('.nav-btn[data-page=pv2]');
+    if(!nav||typeof window.go!=='function')return;
+    landed=true;
+    try{go('pv2',nav); setTimeout(adopt,250);}catch(e){}
+  }
+  function boot(){
+    rename();
+    land();
+    var gate=document.getElementById('authGate');
+    if(gate&&!gate.__v52){gate.__v52=1;gate.addEventListener('click',function(e){
+      if(e.target.closest('.signin'))setTimeout(function(){landed=false;land();},700);
+    });}
+    /* re-adopt cards whenever the dashboard is opened (they re-render in place) */
+    var _go=window.go;
+    if(typeof _go==='function'&&!window.__v52Go){window.__v52Go=1;window.go=function(p,btn){_go(p,btn);if(p==='pv2')setTimeout(adopt,200);};}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,2100); setTimeout(boot,3200);
+})();
+
+</script>
+
+<style id="v53Style">
+/* V53 - vertical-aware entry dashboard (no new styles) */
+
+</style>
+<script id="v53Script">
+(function(){
+  if(window.__V53)return; window.__V53=1;
+  function vname(){var v=window.__vertical;return v==='Academy'?'Academy':v==='Study Abroad'?'Study Abroad':'all verticals';}
+
+  /* re-render the entry dashboard whenever the vertical changes, so
+     Academy vs Study Abroad always show their own live numbers. */
+  function refresh(){
+    var pv=document.getElementById('page-pv2');
+    if(!pv||!pv.classList.contains('on'))return;
+    var nav=document.querySelector('.nav-btn[data-page=pv2]');
+    try{ go('pv2',nav); }catch(e){}
+    setTimeout(label,150); setTimeout(label,350); setTimeout(label,600);
+  }
+  /* stamp the active vertical into the dashboard copy + KPI captions */
+  function label(){
+    var pv=document.getElementById('page-pv2'); if(!pv)return;
+    var sub=pv.querySelector('.pv-greet-sub');
+    if(sub)sub.innerHTML='Your <b>'+vname()+'</b> dashboard - profile, targets, students and today\'s schedule in one glass view.';
+    var caps=pv.querySelectorAll('.pv-kpi .pv-ks');
+    if(caps[0])caps[0].textContent='All '+vname()+' leads';
+  }
+  function boot(){
+    if(!window.__v53Sv){window.__v53Sv=1;var _sv=window.setVertical;window.setVertical=function(v){if(_sv)_sv(v);setTimeout(refresh,80);};}
+    var _go=window.go;
+    if(typeof _go==='function'&&!window.__v53Go){window.__v53Go=1;window.go=function(p,btn){_go(p,btn);if(p==='pv2')setTimeout(label,180);};}
+    setTimeout(label,400);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,2200);
+})();
+
+</script>
 </body>
 </html>
