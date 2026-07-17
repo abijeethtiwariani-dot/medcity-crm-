@@ -6742,6 +6742,17 @@ img,svg{max-width:100%;height:auto;}
 </body>
 </html></script>
 
+<script id="storageShim">
+/* Persistence fix: the `store` wrapper gates on window.storage, which is otherwise
+   undefined in a plain browser — so every store.set/get silently no-ops and data
+   (Universities, Branch Reports, workspace, automations, theme…) never survives a
+   reload. Define a localStorage-backed shim BEFORE any layer uses `store`. */
+if(!window.storage){window.storage={
+  set:function(k,v){try{localStorage.setItem(k,typeof v==='string'?v:JSON.stringify(v));}catch(e){}return true;},
+  get:function(k){try{var v=localStorage.getItem(k);return v==null?null:{value:v};}catch(e){return null;}}
+};}
+</script>
+
 <script id="mcSwitchJS">
 (function(){
   function mcSwitch(v){
@@ -12155,7 +12166,8 @@ body[data-ts="3"] .content,body[data-ts="3"] #academyWrap iframe{zoom:1.28}
     try{
       var acad=(window.__DB_MASTER||[]).filter(function(r){return r.vertical==='Academy';}).slice(0,60);
       localStorage.setItem('medcity_ops_crm_leads', JSON.stringify(acad.map(toOpsLead)));
-      localStorage.setItem('medcity_ops_qc_scores', JSON.stringify((window.COUNS||[]).map(toOpsQc)));
+      /* only seed synthetic QC on first load — never clobber saved evaluations */
+      if(!localStorage.getItem('medcity_ops_qc_scores')) localStorage.setItem('medcity_ops_qc_scores', JSON.stringify((window.COUNS||[]).map(toOpsQc)));
     }catch(e){}
   }
   window.__seedOpsDesk=seed;
