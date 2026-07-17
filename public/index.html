@@ -16792,5 +16792,141 @@ body.light #docDashCard{background:linear-gradient(120deg,rgba(244,241,251,.6),r
 })();
 
 </script>
+
+<style id="v58Style">
+/* V58 - dynamic student360 + mobile apps (reuses V57 tw-switch styles) */
+.ph-cap{text-align:center;font-size:11px;color:var(--mist);margin-top:8px}
+
+</style>
+<script id="v58Script">
+(function(){
+  if(window.__V58)return; window.__V58=1;
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function hash(s){var h=0,i;for(i=0;i<String(s).length;i++)h=(h*31+String(s).charCodeAt(i))|0;return Math.abs(h);}
+  function inr(n){n=+n||0;return n?'₹'+n.toLocaleString('en-IN'):'—';}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function leads(){return (window.__DB_MASTER||[]);}
+  function first(n){return String(n||'').split(' ')[0];}
+  function initials(n){return String(n||'?').trim().split(/\s+/).slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();}
+  var STAGES=['New','Contacted','Qualified','Counselled','Applied','Offer','Converted'];
+  function sidx(l){return l.status==='Lost'?1:STAGES.indexOf(l.status);}
+  function readiness(l){return l.status==='Lost'?18:Math.round((sidx(l)+1)/7*100);}
+  var curId=null;
+  function curLead(){var l=leads().find(function(x){return x.id===curId;});return l||leads()[0];}
+
+  /* derived (deterministic) demo attributes so every student looks complete */
+  function age(l){return 20+hash(l.id+'a')%9;}
+  function dob(l){var y=2026-age(l),m=1+hash(l.id+'m')%12,d=1+hash(l.id+'d')%27;return ('0'+d).slice(-2)+'/'+('0'+m).slice(-2)+'/'+y+' · '+age(l)+' yrs';}
+  function passport(l){return 'V'+(10000+hash(l.id+'p')%89999)+String.fromCharCode(65+hash(l.id)%26);}
+  function degree(l){return ['B.Tech CSE','BSc Nursing','B.Com','BBA','BA English','B.Tech ECE','BSc Physics','GNM Nursing','B.Sc Nursing','Diploma'][hash(l.id+'deg')%10];}
+  function cgpa(l){return (6+(hash(l.id+'c')%40)/10).toFixed(1);}
+  function uniFor(l){var U={'UK':'University of Leeds','Germany':'TU Munich','Ireland':'Trinity College Dublin','Canada':'University of Waterloo','Australia':'Monash University','USA':'Arizona State University','Austria':'FH Technikum Wien','Gulf':'Gulf Nursing Board','Local':'Medcity Academy'};return U[l.country]||'Partner University';}
+  function docsFor(l){return l.vertical==='Academy'?['Passport / ID','10th Certificate','+2 Certificate','Photo','Registration form','Fee receipt']:['Passport','Academic transcripts','English test score','Statement of Purpose','LOR (×2)','Financial documents','Offer letter','Visa documents'];}
+  function collected(l){var f=get('gp-doc-folders',{})[l.id];var d=docsFor(l);if(f&&f.docs){var n=0;d.forEach(function(nm){var s=(f.docs[nm]||{}).status;if(s==='received'||s==='verified')n++;});return n;}var fr=[0,.15,.4,.62,.85,.95,1][Math.max(0,sidx(l))]||.3;return Math.round(d.length*fr);}
+
+  function switcher(page){
+    var l=curLead();
+    var opts=leads().slice(0,400).map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.id)+' · '+esc(x.course||'')+'</option>';}).join('');
+    return '<div class="tw-switch"><div class="tw-cur"><div class="tw-av">'+esc(initials(l.name))+'</div>'+
+      '<div><b>'+esc(l.name)+'</b><span class="v34-dim" style="font-size:11.5px;display:block">'+esc(l.id)+' · '+esc(l.course||'')+' · '+esc(l.country||'')+' · '+esc(l.branch||'')+' · <b style="color:var(--gold)">'+esc(l.status)+'</b></span></div></div>'+
+      '<div class="tw-nav"><button class="v34-btn" onclick="s58Step(\''+page+'\',-1)">‹ Prev</button>'+
+        '<input class="v34-in" list="s58List" placeholder="Switch student — name or ID" style="min-width:220px" onchange="s58Go(\''+page+'\',this.value)">'+
+        '<datalist id="s58List">'+opts+'</datalist>'+
+        '<button class="v34-btn" onclick="s58Step(\''+page+'\',1)">Next ›</button>'+
+        '<button class="v34-btn gold" onclick="s58Rand(\''+page+'\')">Random</button></div></div>';
+  }
+  window.s58Go=function(pg,v){var m=String(v||'').match(/L-\d+/i);var id=m?m[0].toUpperCase():'';var l=leads().find(function(x){return x.id===id||x.name===v;});if(l){curId=l.id;draw(pg);toastX(l.name);}else toastX('Pick a student from the list');};
+  window.s58Step=function(pg,dir){var L=leads(),i=L.findIndex(function(x){return x.id===curId;});i=(i+dir+L.length)%L.length;curId=L[i].id;draw(pg);};
+  window.s58Rand=function(pg){var L=leads();curId=L[hash(''+L.length+Math.max(1,sidx(curLead())))%L.length].id;draw(pg);};
+  function draw(pg){ if(pg==='student')renderStudent(); else renderMapps(); }
+
+  /* ═══ Student 360 ═══ */
+  function field(k,v){return '<div class="field"><small>'+esc(k)+'</small><span>'+v+'</span></div>';}
+  function renderStudent(){
+    var pg=document.getElementById('page-student'); if(!pg)return;
+    var l=curLead(); if(!l)return; curId=l.id;
+    var r=readiness(l), col=collected(l), docs=docsFor(l), idx=sidx(l);
+    var c=l.created||'2026-05-01';
+    function dOff(o){var dt=new Date(c);dt.setDate(dt.getDate()+o);return dt.toISOString().slice(0,10);}
+    var badges=['b-ok','b-ok','b-ok','b-warn','b-ok','b-miss'];
+    pg.innerHTML=switcher('student')+
+      '<div class="profile-head"><div class="profile-av">'+esc(initials(l.name))+'</div>'+
+        '<div><h2>'+esc(l.name)+'</h2><div class="pid">'+esc(l.id)+' · created '+esc(c)+' · '+esc(l.branch||'')+' · '+esc(l.vertical)+'</div>'+
+          '<div class="chips"><span class="chip">'+esc(l.country||'')+' · '+esc(l.course||'')+'</span><span class="chip">AI score '+(l.score||0)+'</span><span class="chip">'+esc(l.source||'')+'</span><span class="chip hl">'+(idx>=5?'Offer: '+uniFor(l):'Stage: '+l.status)+'</span></div></div>'+
+        '<div class="readiness"><svg class="ring" width="76" height="76"><circle class="bg" cx="38" cy="38" r="32" fill="none" stroke-width="7"/><circle class="fg" cx="38" cy="38" r="32" fill="none" stroke-width="7" stroke-dasharray="201" stroke-dashoffset="'+(201-201*r/100)+'" transform="rotate(-90 38 38)"/></svg>'+
+          '<div style="margin-top:-52px;font-family:var(--font-d);font-weight:700;font-size:17px">'+r+'%</div><div style="margin-top:30px;font-size:10px;letter-spacing:1px;color:var(--mist)">READINESS</div></div></div>'+
+      '<div class="tabs" id="stuTabs">'+['personal','education','docs','finance','timeline'].map(function(t,i){return '<button class="tab'+(i===0?' on':'')+'" onclick="stab(\''+t+'\',this)">'+['Personal','Education','Documents','Finances','Timeline'][i]+'</button>';}).join('')+'</div>'+
+      '<div class="stab on" id="stab-personal"><div class="grid fields">'+
+        field('Full name',esc(l.name))+field('Date of birth',dob(l))+field('Nationality','Indian')+field('Passport no.','<span class="mono">'+passport(l)+'</span>')+
+        field('Phone','<span class="mono">'+esc(l.phone||'—')+'</span>')+field('Email','<span class="mono">'+esc(l.email||'—')+'</span>')+
+        field('Counsellor',esc(l.counselor||l.coun||'—'))+field('Sponsor','Family · funds '+(l.value?inr(l.value):'under review'))+field('Emergency contact','<span class="mono">+91 '+(70000+hash(l.id+'e')%29999)+'</span>')+
+      '</div></div>'+
+      '<div class="stab" id="stab-education" style="display:none"><div class="grid fields">'+
+        field('Degree',degree(l))+field('CGPA',cgpa(l)+' / 10')+field('Programme applied',esc(l.course||''))+field('Intake',esc(l.intake||'—'))+field('English test',(l.vertical==='Academy'?'In progress':'IELTS '+(5.5+(hash(l.id)%25)/10).toFixed(1)))+field('Preferred country',esc(l.country||''))+
+      '</div></div>'+
+      '<div class="stab" id="stab-docs" style="display:none"><div class="card"><h3>Document checklist<span class="tag">'+col+' / '+docs.length+' collected</span></h3>'+
+        docs.map(function(d,i){var ok=i<col;return '<div class="doc-row">'+esc(d)+'<span class="badge '+(ok?'b-ok':(i===col?'b-warn':'b-miss'))+'">'+(ok?'VERIFIED':(i===col?'IN PROGRESS':'PENDING'))+'</span></div>';}).join('')+'</div></div>'+
+      '<div class="stab" id="stab-finance" style="display:none"><div class="grid fields">'+
+        field('Service package','<span class="mono">'+inr(85000+hash(l.id)%40000)+' + GST</span>')+field('Paid',inr((idx>=3?0.6:idx>=1?0.3:0)*85000|0))+field('Balance due',inr((idx>=3?0.4:0.7)*85000|0))+
+        field('Programme value',l.value?inr(l.value):'—')+field('Commission',idx>=5?uniFor(l)+' · 15%':'on enrolment')+field('Refund policy','Slab B · signed')+
+      '</div></div>'+
+      '<div class="stab" id="stab-timeline" style="display:none"><div class="life">'+
+        [[dOff(0),'Lead created — '+(l.source||''),1],[dOff(1),'Counselling booked',idx>=2],[dOff(4),'Documents started',idx>=3],[dOff(9),'Application submitted',idx>=4],[dOff(15),'Offer — '+uniFor(l),idx>=5],[dOff(22),'Visa filed',idx>=6],['Future','Enrolled',idx>=6]]
+        .map(function(e){return '<div class="life-ev '+(e[2]?'':'future')+'"><i></i><time>'+esc(e[0])+'</time><b>'+esc(e[1])+'</b></div>';}).join('')+'</div></div>';
+  }
+
+  /* ═══ Mobile Apps ═══ */
+  function renderMapps(){
+    var pg=document.getElementById('page-mapps'); if(!pg)return;
+    var l=curLead(); if(!l)return; curId=l.id;
+    var r=readiness(l), col=collected(l), docs=docsFor(l), idx=sidx(l), fn=first(l.name);
+    var pend=docs.slice(col);
+    pg.innerHTML=switcher('mapps')+
+      '<div class="phones">'+
+      /* student */
+      '<div><div class="phone"><div class="ph-notch"><i></i></div><div class="ph-body">'+
+        '<div class="ph-head">Student App<span class="chip" style="margin-left:auto;font-size:9px">'+esc(fn)+'</span></div>'+
+        '<div class="ph-card" style="background:linear-gradient(120deg,#3A2E6B,#4E35A8);color:#fff"><b>Journey: '+r+'% ready</b><small>Stage: '+esc(l.status)+' · '+esc(l.course||'')+'</small></div>'+
+        '<div class="ph-card"><b>Documents</b><small>'+col+' verified'+(pend.length?' · pending: '+esc(pend[0]):' · all in')+'</small><span class="ph-btn" onclick="toast(\'Camera upload ready\')">Upload</span></div>'+
+        (idx>=5?'<div class="ph-card"><b>Offer — '+esc(uniFor(l))+'</b><small>'+(idx>=6?'Confirmed · deposit paid':'Conditional · review')+'</small></div>':'<div class="ph-card"><b>Application</b><small>'+(idx>=4?'Submitted · awaiting offer':'In preparation')+'</small></div>')+
+        '<div class="ph-card"><b>Payments</b><small>'+inr((idx>=3?0.4:0.7)*85000|0)+' due · UPI / card</small><span class="ph-btn" onclick="toast(\'Payment gateway\')">Pay</span></div>'+
+        '<div class="ph-card"><b>Chat with '+esc(first(l.counselor||l.coun||"counsellor"))+'</b><small>"'+(l.lastOutcome||'We will call you')+'" · now</small></div>'+
+        '<div class="ph-card"><b>Travel checklist</b><small>'+(idx>=6?'in progress':'unlocks after offer')+'</small></div>'+
+      '</div></div><div class="ph-cap">Student App · docs · offers · visa · chat · pay</div></div>'+
+      /* parent */
+      '<div><div class="phone"><div class="ph-notch"><i></i></div><div class="ph-body">'+
+        '<div class="ph-head">Parent View<span class="chip" style="margin-left:auto;font-size:9px">LIVE</span></div>'+
+        '<div class="ph-card" style="background:linear-gradient(120deg,#6A4BD4,#8F6BE8);color:#fff"><b>'+esc(fn)+"'s status</b><small>"+esc(l.status)+' · '+r+'% ready</small></div>'+
+        '<div class="ph-card"><b>Live tracking</b><small>Updated just now · '+esc(l.branch||'')+'</small></div>'+
+        '<div class="ph-card"><b>Funds</b><small>'+(l.value?inr(l.value)+' committed':'under review')+'</small></div>'+
+        '<div class="ph-card"><b>Next step</b><small>'+(idx>=6?'Visa & travel':idx>=5?'Accept offer':idx>=4?'Await university':'Counselling & docs')+'</small></div>'+
+        '<div class="ph-card"><b>Counsellor</b><small>'+esc(l.counselor||l.coun||'—')+'</small></div>'+
+      '</div></div><div class="ph-cap">Parent App · track everything, live</div></div>'+
+      /* agent */
+      '<div><div class="phone"><div class="ph-notch"><i></i></div><div class="ph-body">'+
+        '<div class="ph-head">Counsellor App<span class="chip" style="margin-left:auto;font-size:9px">'+esc(first(l.counselor||l.coun||"CRM"))+'</span></div>'+
+        '<div class="ph-card" style="background:linear-gradient(120deg,#2E8B6A,#3FA07E);color:#fff"><b>'+esc(fn)+'</b><small>'+esc(l.id)+' · score '+(l.score||0)+' · '+esc(l.status)+'</small></div>'+
+        '<div class="ph-card"><b>Next action</b><small>'+(l.lastOutcome||'Follow up')+'</small><span class="ph-btn" onclick="toast(\'Click-to-call\')">Call</span></div>'+
+        '<div class="ph-card"><b>Docs pending</b><small>'+pend.length+' of '+docs.length+'</small></div>'+
+        '<div class="ph-card"><b>Calls logged</b><small>'+(l.calls||0)+' · '+(l.callMins||0)+' min</small></div>'+
+        '<div class="ph-card"><b>Value</b><small>'+(l.value?inr(l.value):'—')+'</small></div>'+
+      '</div></div><div class="ph-cap">Counsellor App · pipeline in your pocket</div></div>'+
+      '</div>';
+  }
+
+  function boot(){
+    var _go=window.go;
+    if(typeof _go==='function'&&!window.__v58Go){window.__v58Go=1;window.go=function(p,btn){_go(p,btn);
+      if(p==='student')setTimeout(function(){renderStudent();var pg=document.getElementById('page-student'),se=pg&&pg.querySelector('.se-card');if(se)se.remove();},90);
+      if(p==='mapps')setTimeout(renderMapps,90);
+    };}
+    try{ if(typeof titles!=='undefined'){titles.student=['Student 360°','switch any student · live profile'];titles.mapps=['Mobile Apps','live student/parent/counsellor apps'];} }catch(e){}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,2100);
+})();
+
+</script>
 </body>
 </html>
