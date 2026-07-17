@@ -16663,5 +16663,134 @@ body.light #docDashCard{background:linear-gradient(120deg,rgba(244,241,251,.6),r
 })();
 
 </script>
+
+<style id="v57Style">
+/* V57 - dynamic digital twin switcher */
+.tw-switch{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 16px;margin-bottom:16px}
+.tw-cur{display:flex;align-items:center;gap:11px}
+.tw-av{width:42px;height:42px;flex:none;border-radius:12px;background:linear-gradient(135deg,#7C5CE0,#4E35A8);color:#fff;display:flex;align-items:center;justify-content:center;font:800 15px var(--font-d)}
+.tw-cur b{font:700 15px var(--font-d);color:var(--paper)}
+.tw-nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.gedge-t{pointer-events:none}
+
+</style>
+<script id="v57Script">
+(function(){
+  if(window.__V57)return; window.__V57=1;
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function hash(s){var h=0,i;for(i=0;i<String(s).length;i++)h=(h*31+String(s).charCodeAt(i))|0;return Math.abs(h);}
+  function inr(n){n=+n||0;return n?'₹'+n.toLocaleString('en-IN'):'—';}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function leads(){return (window.__DB_MASTER||[]);}
+  function first(n){return String(n||'').split(' ')[0];}
+  var curId=null, ENTS=[];
+
+  var UNIS={
+    'UK':['University of Leeds','University of Glasgow','Coventry University','University of Aberdeen'],
+    'Germany':['TU Munich','RWTH Aachen','University of Siegen','University of Kassel'],
+    'Ireland':['Trinity College Dublin','University College Dublin','University of Limerick'],
+    'Canada':['University of Waterloo','McMaster University','Conestoga College'],
+    'Australia':['Monash University','Deakin University','La Trobe University'],
+    'USA':['Arizona State University','University of Texas Arlington'],
+    'Austria':['FH Technikum Wien','University of Vienna'],
+    'Gulf':['Gulf Nursing Board','DHA / HAAD Pathway'],
+    'Local':['Medcity Academy Centre'],
+    'Ireland/UK':['UK Care College']
+  };
+  function uniFor(l){var pool=UNIS[l.country]||UNIS['UK'];return pool[hash(l.id)%pool.length];}
+  function embassyFor(l){return (l.country==='Gulf'||l.country==='Local')?'Prometric / DataFlow':(l.country||'Destination')+' Consulate';}
+
+  function buildEnts(l){
+    var uni=uniFor(l), coun=l.counselor||l.coun||'Counsellor', br=l.branch||'Branch';
+    var val=l.value?inr(l.value):'under assessment';
+    return [
+      [l.name,'STUDENT',320,180,26,'var(--jet)','Centre of the twin · stage '+l.status+' · AI score '+(l.score||0)+'/100 · '+(l.course||'programme')+' · '+(l.calls||0)+' calls logged'],
+      [first(l.name)+" (Sponsor)",'SPONSOR',150,70,17,'var(--gold)','Sponsor / funds · '+val+' · consent '+(['Applied','Offer','Converted'].indexOf(l.status)>=0?'signed':'pending')],
+      ['Parent / guardian','PARENT',110,180,15,'var(--gold)','Parent app · tracking '+first(l.name)+' · '+(l.status==='Converted'?'travel updates on':'progress updates weekly')],
+      [uni,'UNIVERSITY',505,70,18,'var(--violet)','Target · '+(l.course||'programme')+' · '+(l.country||'')+' · intake '+(l.intake||'—')+' · '+(['Offer','Converted'].indexOf(l.status)>=0?'offer received':'application in progress')],
+      [embassyFor(l),'EMBASSY / EXAM',560,180,16,'var(--coral)','Visa / licensing route · '+(l.country||'')+' · '+(l.status==='Converted'?'filing in progress':'not yet reached')],
+      ['Education loan','BANK / LOAN',150,300,16,'var(--mint)','Loan check · '+val+' · docs '+(hash(l.id)%100)+'% complete'],
+      ['Accommodation','HOUSING',330,320,15,'var(--jet)','Room search · '+(l.country||'')+' · '+(l.status==='Converted'?'reserved':'shortlisting')],
+      ['Travel desk','AIRLINE',480,300,15,'var(--gold)','Flights · '+(l.status==='Converted'?'held for intake':'planned after visa')],
+      [coun,'COUNSELLOR',230,90,15,'var(--mint)','Owner · '+br+' · last outcome: '+(l.lastOutcome||'—')],
+      ['Insurance','INSURANCE',420,225,13,'var(--violet)','Student cover · quote pending'],
+      ['AI alumni mentor','ALUMNI',560,255,13,'var(--mist)','Matched by course + country · '+(l.course||'')]
+    ];
+  }
+  var EDGES=[[0,1,'sponsors'],[0,2,'parent'],[0,3,'applied'],[0,4,'visa'],[0,5,'loan'],[0,6,'housing'],[0,7,'flight'],[0,8,'counsellor'],[0,9,'insurance'],[3,10,'mentor']];
+
+  function lifeFor(l){
+    var stages=['New','Contacted','Qualified','Counselled','Applied','Offer','Converted'];
+    var idx=stages.indexOf(l.status); if(l.status==='Lost')idx=1;
+    var c=l.created||'2026-06-01';
+    function d(off){var dt=new Date(c);dt.setDate(dt.getDate()+off);return dt.toISOString().slice(5,10).replace('-','/');}
+    var ev=[
+      [d(0),'Lead created — '+(l.source||''),1],
+      [d(1),'Counselling booked',idx>=2],
+      [d(3),'Documents collection started',idx>=3],
+      [d(6),'Counselling completed',idx>=3],
+      [d(10),'University application submitted',idx>=4],
+      [d(16),'Offer received — '+uniFor(l),idx>=5],
+      [d(22),'Visa / licensing filed',idx>=6],
+      [d(30),'Enrolled · pre-departure',idx>=6],
+      ['Future','Alumni & referral',idx>=6&&l.status==='Converted']
+    ];
+    return ev;
+  }
+
+  window.showEnt=function(i){
+    var n=ENTS[i]; if(!n)return;
+    var p=document.getElementById('entPanel'); if(!p)return;
+    p.innerHTML='<div style="display:flex;gap:11px;align-items:center;margin-bottom:12px"><div class="lb-av" style="background:'+n[5]+';width:38px;height:38px;border-radius:11px;display:grid;place-items:center;color:#fff;font-weight:700">'+esc(n[1][0])+'</div><div><b style="font-size:14px">'+esc(n[0])+'</b><div style="font-size:10.5px;font-family:var(--font-m);color:var(--mist)">'+esc(n[1])+'</div></div></div>'+
+      '<div class="ai-msg" style="margin-bottom:10px"><b>AI insight:</b> '+esc(n[6])+'</div>'+
+      '<div class="chips"><span class="chip">Documents</span><span class="chip">Comms</span><span class="chip">Financials</span><span class="chip">Timeline</span></div>';
+  };
+
+  function draw(l){
+    var g=document.getElementById('graph'); if(!g)return;
+    ENTS=buildEnts(l);
+    g.innerHTML=EDGES.map(function(e){var a=ENTS[e[0]],b=ENTS[e[1]];return '<line class="gedge" x1="'+a[2]+'" y1="'+a[3]+'" x2="'+b[2]+'" y2="'+b[3]+'"/><text class="gedge-t" x="'+((a[2]+b[2])/2)+'" y="'+((a[3]+b[3])/2)+'" font-size="8" fill="var(--mist)">'+esc(e[2])+'</text>';}).join('')+
+      ENTS.map(function(n,i){return '<g class="gnode" onclick="showEnt('+i+')" style="cursor:pointer"><circle cx="'+n[2]+'" cy="'+n[3]+'" r="'+n[4]+'" fill="'+n[5]+'" fill-opacity=".18" stroke="'+n[5]+'" stroke-width="2"/><text x="'+n[2]+'" y="'+(n[3]+n[4]+11)+'" text-anchor="middle" font-size="9" fill="var(--paper)" font-family="var(--font-d)">'+esc(n[0].length>18?n[0].slice(0,17)+'…':n[0])+'</text></g>';}).join('');
+    showEnt(0);
+    document.getElementById('life').innerHTML=lifeFor(l).map(function(e){return '<div class="life-ev '+(e[2]?'':'future')+'"><i></i><time>'+esc(e[0])+'</time><b>'+esc(e[1])+'</b></div>';}).join('');
+  }
+
+  function curLead(){var l=leads().find(function(x){return x.id===curId;});return l||leads()[0];}
+  function render(){
+    var pg=document.getElementById('page-twin'); if(!pg)return;
+    var l=curLead(); if(!l)return; curId=l.id;
+    var opts=leads().slice(0,400).map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.name)+' — '+esc(x.id)+' · '+esc(x.course||'')+'</option>';}).join('');
+    pg.innerHTML=
+      '<div class="tw-switch">'+
+        '<div class="tw-cur"><div class="tw-av">'+esc(first(l.name)[0]||'')+(esc((l.name.split(' ')[1]||' ')[0])||'')+'</div>'+
+          '<div><b>'+esc(l.name)+'</b><span class="v34-dim" style="font-size:11.5px;display:block">'+esc(l.id)+' · '+esc(l.course||'')+' · '+esc(l.country||'')+' · '+esc(l.branch||'')+' · <b style="color:var(--gold)">'+esc(l.status)+'</b> · '+esc(l.vertical)+'</span></div></div>'+
+        '<div class="tw-nav"><button class="v34-btn" onclick="twStep(-1)">‹ Prev</button>'+
+          '<input class="v34-in" list="twList" id="twPick" placeholder="Switch student — type name or ID" style="min-width:230px" onchange="twGo(this.value)">'+
+          '<datalist id="twList">'+opts+'</datalist>'+
+          '<button class="v34-btn" onclick="twStep(1)">Next ›</button>'+
+          '<button class="v34-btn gold" onclick="twRandom()">Random</button></div>'+
+      '</div>'+
+      '<div class="grid g2" style="grid-template-columns:1.35fr .65fr;margin-bottom:16px">'+
+        '<div class="card gwrap"><h3>Entity Relationship Graph — '+esc(l.name)+'<span class="tag">click any node · live from this lead</span></h3><svg viewBox="0 0 640 360" width="100%" id="graph"></svg></div>'+
+        '<div class="card"><h3>Entity Master Profile<span class="tag">live</span></h3><div id="entPanel"></div></div>'+
+      '</div>'+
+      '<div class="card"><h3>Complete Digital Lifecycle — enquiry → alumni<span class="tag">generated from this student\'s stage</span></h3><div class="life" id="life"></div></div>';
+    draw(l);
+  }
+  window.twGo=function(v){var m=String(v||'').match(/L-\d+/i);var id=m?m[0].toUpperCase():'';var l=leads().find(function(x){return x.id===id||x.name===v;});if(l){curId=l.id;render();toastX('Digital twin: '+l.name);}else toastX('Pick a student from the list');};
+  window.twStep=function(dir){var L=leads();var i=L.findIndex(function(x){return x.id===curId;});i=(i+dir+L.length)%L.length;curId=L[i].id;render();};
+  window.twRandom=function(){var L=leads();curId=L[hash(''+(L.length+curId))%L.length].id;render();};
+  window.renderTwin2=render;
+
+  function boot(){
+    var _go=window.go;
+    if(typeof _go==='function'&&!window.__v57Go){window.__v57Go=1;window.go=function(p,btn){_go(p,btn);if(p==='twin'){setTimeout(render,90);setTimeout(function(){var pg=document.getElementById('page-twin'),se=pg&&pg.querySelector('.se-card');if(se)se.remove();},260);}};}
+    try{ if(typeof titles!=='undefined')titles.twin=['Digital Twin','switch any student · live model from their lead data']; }catch(e){}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,2100);
+})();
+
+</script>
 </body>
 </html>
