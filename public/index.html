@@ -17246,5 +17246,100 @@ body.light .funnel .f-bar,body.light .f-bar{color:#fff!important}
 })();
 
 </script>
+
+<style id="v62Style">
+/* V62 — photo + branch dropdown in the credential editor */
+.c62wrap{display:flex;gap:14px;align-items:center}
+.c62prev{width:66px;height:66px;border-radius:14px;flex:0 0 auto;background:var(--panel-2);border:1px solid var(--line);background-size:cover;background-position:center;display:grid;place-items:center;font-weight:800;font-size:20px;color:var(--paper);text-transform:uppercase}
+.c62btn{cursor:pointer;display:inline-block;font-size:12px;font-weight:600;color:#211D35;background:linear-gradient(90deg,#D3F56A,#BCEB3F);border-radius:9px;padding:8px 14px}
+.c62hint{font-size:10.5px;color:var(--mist);margin-top:5px;max-width:230px}
+#c62row select#cBranch,.cr-f select#cBranch{width:100%}
+
+</style>
+<script id="v62Script">
+(function(){
+  if(window.__V62)return; window.__V62=1;
+  /* ═══ V62 — credential editor upgrades (staff & faculty backend):
+     (1) admin can set the PROFILE PHOTO right in the New/Edit credential modal
+         (writes to gp-profiles, same store V54/V59 paint from → shows everywhere);
+     (2) Branch becomes a DROPDOWN from the 18-branch master — no typing. ═══ */
+  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function profs(){return get('gp-profiles',{})||{};}
+  function initials(n){n=(n||'').trim();if(!n)return'?';var p=n.split(/\s+/);return((p[0]||'')[0]||'')+((p[1]||'')[0]||'');}
+
+  var BRANCHES18=['HQ · Kochi','Medcity Kannur','Medcity Kozhikode','Medcity Kochi','Medcity Thrissur','Medcity Muvattupuzha','Medcity Kothamangalam','Medcity Kottayam','Medcity Kanjikuzhi','Medcity Pala','Medcity Pala 2','Medcity Thodupuzha','Medcity Kattappana','Medcity Trivandrum','Medcity Kollam','Medcity Mavelikkara','Medcity Thiruvalla KSRTC Branch','Medcity Thiruvalla Chandrima Branch','Medcity Mangalore'];
+
+  var pendingPic='';
+  function readPic(file,cb){
+    if(!file){cb('');return;}
+    var r=new FileReader();
+    r.onload=function(){var img=new Image();img.onload=function(){
+      var S=240,side=Math.min(img.width,img.height),c=document.createElement('canvas');c.width=S;c.height=S;
+      c.getContext('2d').drawImage(img,(img.width-side)/2,(img.height-side)/2,side,side,0,0,S,S);
+      cb(c.toDataURL('image/jpeg',.82));
+    };img.src=r.result;};
+    r.readAsDataURL(file);
+  }
+  window.c62Pic=function(inp){readPic(inp.files&&inp.files[0],function(d){pendingPic=d;var pv=document.getElementById('c62prev');if(pv&&d){pv.style.backgroundImage='url('+d+')';pv.style.color='transparent';pv.textContent='';}});};
+
+  /* enhance the credential modal after crEdit renders it */
+  function enhance(u){
+    var body=document.getElementById('crBody'); if(!body)return;
+    /* --- Branch text input → dropdown --- */
+    var bi=document.getElementById('cBranch');
+    if(bi && bi.tagName==='INPUT'){
+      var cur=(bi.value||'').trim();
+      var extra=(cur && BRANCHES18.indexOf(cur)<0)?'<option value="'+esc(cur)+'" selected>'+esc(cur)+'</option>':'';
+      var opts='<option value="">— select branch —</option>'+extra+BRANCHES18.map(function(b){return '<option value="'+esc(b)+'"'+(b===cur?' selected':'')+'>'+esc(b)+'</option>';}).join('');
+      var sel=document.createElement('select'); sel.id='cBranch'; sel.className=bi.className||''; sel.innerHTML=opts;
+      if(cur)sel.value=cur;
+      bi.parentNode.replaceChild(sel,bi);
+    }
+    /* --- Profile photo row (inject once, right under the heading) --- */
+    if(!document.getElementById('c62row')){
+      var uname=(u&&typeof u==='string')?u:((document.getElementById('cUser')||{}).value||'');
+      var name=(document.getElementById('cName')||{}).value||'';
+      var pic=pendingPic||(profs()[uname]||{}).pic||'';
+      var h=body.querySelector('h3');
+      var html='<div class="cr-f c62row" id="c62row"><label>Profile photo</label>'+
+        '<div class="c62wrap">'+
+          '<div class="c62prev" id="c62prev" style="'+(pic?'background-image:url('+esc(pic)+');color:transparent':'')+'">'+(pic?'':esc(initials(name)))+'</div>'+
+          '<div><label class="c62btn">Upload photo<input type="file" accept="image/*" style="display:none" onchange="c62Pic(this)"></label>'+
+          '<div class="c62hint">JPG/PNG, auto-cropped square. Shows on their dashboard, sidebar &amp; directory.</div></div>'+
+        '</div></div>';
+      if(h)h.insertAdjacentHTML('afterend',html); else body.insertAdjacentHTML('afterbegin',html);
+    }
+  }
+
+  function boot(){
+    if(typeof window.crEdit==='function'&&!window.__v62Edit){window.__v62Edit=1;
+      var _e=window.crEdit; window.crEdit=function(u){pendingPic='';_e.apply(this,arguments);setTimeout(function(){enhance(u);},0);};
+    }
+    if(typeof window.crSave==='function'&&!window.__v62Save){window.__v62Save=1;
+      var _s=window.crSave; window.crSave=function(){
+        var u=((document.getElementById('cUser')||{}).value||'').trim().toLowerCase();
+        _s.apply(this,arguments);
+        /* modal closes only on a successful save; persist the photo then */
+        var modal=document.getElementById('crModal');
+        var saved=modal && !modal.classList.contains('on');
+        if(saved && pendingPic && u){
+          var P=profs(); P[u]=Object.assign({},P[u],{pic:pendingPic});
+          /* keep name/role/branch in sync so the profile card is complete */
+          var c=(get('gp-credentials',[])||[]).find(function(x){return x.u===u;});
+          if(c){P[u].name=P[u].name||c.name;P[u].role=P[u].role||c.role;P[u].branch=P[u].branch||c.branch;}
+          set('gp-profiles',P);
+          try{if(window.paintAvatars)window.paintAvatars();}catch(e){}
+        }
+        if(saved)pendingPic='';
+      };
+    }
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,1500); setTimeout(boot,3000);
+})();
+
+</script>
 </body>
 </html>
