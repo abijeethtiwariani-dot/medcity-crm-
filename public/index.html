@@ -18266,5 +18266,439 @@ body.light .funnel .f-bar,body.light .f-bar{color:#fff!important}
 })();
 
 </script>
+
+<style id="v70Style">
+/* V70 — hide/restore the AI assistant */
+#dockClose{position:fixed;bottom:118px;right:20px;z-index:67;width:24px;height:24px;border-radius:50%;border:1px solid var(--line);background:var(--panel,#fff);color:var(--paper,#211D35);font-size:15px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);display:grid;place-items:center;padding:0;opacity:.55;transition:opacity .15s,transform .12s}
+#dockClose:hover{opacity:1;transform:scale(1.08)}
+#dockBack{display:none;position:fixed;bottom:26px;right:26px;z-index:67;background:var(--panel,#fff);border:1px solid var(--line);border-radius:20px;padding:8px 14px;font-size:11.5px;color:var(--mist,#6E688A);box-shadow:0 8px 24px rgba(0,0,0,.16);cursor:pointer;font-family:inherit}
+#dockBack b{color:#7C5CE0;margin-left:6px}
+body.student-mode #dockClose,body.student-mode #dockBack{display:none!important}
+
+</style>
+<script id="v70Script">
+(function(){
+  if(window.__V70)return; window.__V70=1;
+  /* ═══ V70 — let users hide the AI assistant (it can block the view), but it
+     comes back automatically after 2 minutes. ═══ */
+  var HIDE_MS=120000;
+  function q(s){return document.querySelector(s);}
+  function addCloser(){
+    var btn=q('.dock-btn'); if(!btn)return;
+    if(document.getElementById('dockClose'))return;
+    var x=document.createElement('button');
+    x.id='dockClose'; x.type='button'; x.title='Hide the assistant for 2 minutes'; x.innerHTML='&times;';
+    x.addEventListener('click',function(e){e.stopPropagation();e.preventDefault();hide();});
+    document.body.appendChild(x);
+  }
+  function hide(){
+    var btn=q('.dock-btn'), dock=document.getElementById('dock'), x=document.getElementById('dockClose');
+    if(dock)dock.classList.remove('on');
+    if(btn)btn.style.display='none';
+    if(x)x.style.display='none';
+    try{if(window.toast)toast('Assistant hidden - it will return in 2 minutes');}catch(e){}
+    /* countdown pill so the user knows it will come back */
+    var pill=document.getElementById('dockBack');
+    if(!pill){pill=document.createElement('div');pill.id='dockBack';document.body.appendChild(pill);}
+    pill.style.display='block';
+    var end=Date.now()+HIDE_MS;
+    function tick(){
+      var left=Math.max(0,Math.round((end-Date.now())/1000));
+      pill.innerHTML='Assistant hidden · back in '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0')+' <b>Show now</b>';
+      if(left<=0){show();return;}
+      pill.__t=setTimeout(tick,1000);
+    }
+    pill.onclick=function(){show();};
+    tick();
+  }
+  function show(){
+    var btn=q('.dock-btn'), x=document.getElementById('dockClose'), pill=document.getElementById('dockBack');
+    if(btn)btn.style.display='';
+    if(x)x.style.display='';
+    if(pill){if(pill.__t)clearTimeout(pill.__t);pill.style.display='none';}
+  }
+  window.__dockShow=show;
+  function boot(){addCloser();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,800); setTimeout(boot,2000); setTimeout(boot,3500);
+})();
+
+</script>
+
+<style id="v71Style">
+/* V71 — excel download buttons (reuse .v34-btn) */
+.dl-xls-acc,.dl-xls-stu{white-space:nowrap}
+
+</style>
+<script id="v71Script">
+(function(){
+  if(window.__V71)return; window.__V71=1;
+  /* ═══ V71 — human-readable Excel (CSV) downloads for logins so anyone can
+     read the username/password clearly (the JSON backup stays for device import). ═══ */
+  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function today(){try{return new Date().toISOString().slice(0,10);}catch(e){return 'export';}}
+  function cell(v){v=String(v==null?'':v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+  window.dlExcel=function(filename,headers,rows){
+    var lines=[headers.map(cell).join(',')].concat(rows.map(function(r){return r.map(cell).join(',');}));
+    var csv='﻿'+lines.join('\r\n'); /* BOM → Excel opens with correct encoding */
+    var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;
+    document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},150);
+  };
+  window.dlAccountsExcel=function(){
+    var creds=get('gp-credentials',[])||[];
+    var rows=creds.map(function(c){return [c.name||'',c.u||'',c.p||'',c.role||'',c.branch||'',(c.active===false?'Disabled':'Active')];});
+    window.dlExcel('medcity-logins-'+today()+'.csv',['Name','Username','Password','Role','Branch','Status'],rows);
+    toastX('Downloaded '+rows.length+' logins as Excel');
+  };
+  window.dlStudentLoginsExcel=function(){
+    var creds=(get('gp-credentials',[])||[]).filter(function(c){return c.role==='Student';});
+    var master=window.__DB_MASTER||[];
+    var rows=creds.map(function(c){var l=master.find(function(x){return x.id===c.leadId;})||{};return [c.name||'',c.u||'',c.p||'',(l.course||''),(l.status||''),(l.branch||'')];});
+    if(!rows.length){toastX('No student logins issued yet');return;}
+    window.dlExcel('medcity-student-logins-'+today()+'.csv',['Student','Username','Password','Course','Status','Branch'],rows);
+    toastX('Downloaded '+rows.length+' student logins as Excel');
+  };
+  window.dlOneLoginExcel=function(u){
+    var c=(get('gp-credentials',[])||[]).find(function(x){return x.u===u;}); if(!c)return;
+    window.dlExcel('login-'+(c.u||'user')+'.csv',['Name','Username','Password','Role','Branch'],[[c.name||'',c.u||'',c.p||'',c.role||'',c.branch||'']]);
+    toastX('Downloaded login as Excel');
+  };
+
+  function injectBtns(){
+    var bar=document.querySelector('.cr-backup .crb-btns');
+    if(bar&&!bar.querySelector('.dl-xls-acc'))bar.insertAdjacentHTML('beforeend','<button class="v34-btn dl-xls-acc" onclick="dlAccountsExcel()">Download logins (Excel)</button>');
+    var sp=document.querySelector('#page-studentportal .sp-lbar');
+    if(sp&&!sp.querySelector('.dl-xls-stu')){var b=document.createElement('button');b.className='v34-btn dl-xls-stu';b.textContent='Download all (Excel)';b.onclick=window.dlStudentLoginsExcel;sp.appendChild(b);}
+    /* single-login modal (V67 spShow) → add an Excel button next to the credentials */
+    var m=document.getElementById('spCredM');
+    if(m&&m.classList.contains('on')&&!m.querySelector('.dl-xls-one')){
+      var inp=m.querySelector('input[readonly]');
+      var uEl=m.querySelectorAll('input[readonly]')[0];
+      if(uEl){var uname=uEl.value;var wrap=m.querySelector('div[style*="padding"]');if(wrap)wrap.insertAdjacentHTML('beforeend','<button class="v34-btn gold dl-xls-one" style="margin-top:8px" onclick="dlOneLoginExcel(\''+uname+'\')">Download as Excel</button>');}
+    }
+  }
+  window.__v71Inject=injectBtns;
+  function boot(){
+    if(typeof window.go==='function'&&!window.__v71Go){window.__v71Go=1;var _go=window.go;window.go=function(p,b){_go(p,b);if(p==='credentials'||p==='studentportal')setTimeout(injectBtns,140);};}
+    /* patch spShow so the Excel button appears whenever a single login modal opens */
+    var _s=window.spShow;
+    if(typeof _s==='function'&&!window.__v71Sp){window.__v71Sp=1;window.spShow=function(id){_s.apply(this,arguments);setTimeout(injectBtns,30);};}
+    setTimeout(injectBtns,900);setTimeout(injectBtns,2000);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,1500);setTimeout(boot,3000);
+})();
+
+</script>
+
+<style id="v72Style">
+/* V72 — student portal: hide the search/topbar + AI mascot, document upload folder */
+body.student-mode .topbar{display:none!important}
+body.student-mode .dock-btn,body.student-mode #dock,body.student-mode #dockClose,body.student-mode #dockBack{display:none!important}
+body.student-mode .content{padding-top:22px}
+.mp-folder .mp-up-btn{display:inline-block;cursor:pointer;font-size:12.5px;font-weight:600;color:#211D35;background:linear-gradient(90deg,#D3F56A,#BCEB3F);border-radius:10px;padding:10px 16px;margin:4px 0 12px}
+.mp-up-list{display:flex;flex-direction:column;gap:8px}
+.mp-up-row{display:flex;align-items:center;gap:11px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;background:var(--panel-2,#F3F1FA)}
+.mp-up-ic{font-size:10px;font-weight:800;letter-spacing:.04em;color:#7C5CE0;background:rgba(124,92,224,.12);border-radius:7px;padding:6px 8px;flex:0 0 auto}
+.mp-up-meta{flex:1;min-width:0}
+.mp-up-meta b{display:block;font-size:12.5px;font-weight:600;color:var(--paper,#211D35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-up-meta span{font-size:11px;color:var(--mist,#6E688A)}
+.mp-up-a{font-size:11px;font-weight:600;border:1px solid var(--line);background:var(--panel,#fff);color:var(--paper,#211D35);border-radius:8px;padding:5px 11px;cursor:pointer;font-family:inherit}
+.mp-up-a.del{color:#C0405A}
+
+</style>
+<script id="v72Script">
+(function(){
+  if(window.__V72)return; window.__V72=1;
+  /* ═══ V72 — student portal rework: a documents FOLDER the student uploads
+     PDFs/images into, no grievance box, no search bar. Uses a MutationObserver
+     so it survives every re-render (V45/V67 both re-render the portal). ═══ */
+  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function session(){return get('gp-session',{})||{};}
+  function master(){return window.__DB_MASTER||[];}
+  function myLead(){var s=session();if(s.role!=='Student'||!s.leadId)return null;return master().find(function(x){return x.id===s.leadId;})||null;}
+  function fmtSize(b){b=+b||0;return b<1024?b+' B':b<1048576?(b/1024).toFixed(0)+' KB':(b/1048576).toFixed(1)+' MB';}
+  function stamp(){var d=new Date();return d.toISOString().slice(0,10)+' '+d.toTimeString().slice(0,5);}
+
+  var UK='gp-student-uploads';
+  function myUploads(id){return (get(UK,{})||{})[id]||[];}
+  window.mpUpload=function(inp){
+    var l=myLead(); if(!l)return; var f=inp.files&&inp.files[0]; if(!f)return;
+    if(f.size>6*1024*1024){toastX('Please keep files under 6 MB');inp.value='';return;}
+    var r=new FileReader();
+    r.onload=function(){
+      var all=get(UK,{})||{}; all[l.id]=all[l.id]||[];
+      all[l.id].push({id:'up'+Date.now(),name:f.name,type:f.type||'file',size:f.size,data:r.result,at:stamp()});
+      set(UK,all); inp.value=''; toastX('Uploaded '+f.name); refreshFolder();
+    };
+    r.readAsDataURL(f);
+  };
+  window.mpUpView=function(id){
+    var l=myLead(); if(!l)return; var u=myUploads(l.id).find(function(x){return x.id===id;}); if(!u)return;
+    var w=window.open(); if(w){ if(/image\//.test(u.type))w.document.write('<img src="'+u.data+'" style="max-width:100%">'); else w.location=u.data; }
+  };
+  window.mpUpDel=function(id){
+    var l=myLead(); if(!l)return; var all=get(UK,{})||{}; all[l.id]=(all[l.id]||[]).filter(function(x){return x.id!==id;}); set(UK,all); refreshFolder();
+  };
+  function folderHTML(l){
+    var ups=myUploads(l.id);
+    var rows=ups.length?ups.map(function(u){
+      var ic=/pdf/i.test(u.type)?'PDF':/image\//.test(u.type)?'IMG':'FILE';
+      return '<div class="mp-up-row"><span class="mp-up-ic">'+ic+'</span><div class="mp-up-meta"><b>'+esc(u.name)+'</b><span>'+fmtSize(u.size)+' · '+esc(u.at)+'</span></div>'+
+        '<button class="mp-up-a" onclick="mpUpView(\''+u.id+'\')">View</button><button class="mp-up-a del" onclick="mpUpDel(\''+u.id+'\')">Remove</button></div>';
+    }).join(''):'<div class="v34-dim" style="font-size:12.5px;padding:8px 0">No files uploaded yet. Add your passport, certificates and photos below.</div>';
+    return '<h3>My documents folder</h3>'+
+      '<div class="sub">Upload your certificates, passport and photos here (PDF or image). Your counsellor can collect them from your file.</div>'+
+      '<label class="mp-up-btn">Upload a file (PDF or image)<input type="file" accept="application/pdf,image/*" style="display:none" onchange="mpUpload(this)"></label>'+
+      '<div class="mp-up-list">'+rows+'</div>';
+  }
+  function refreshFolder(){var f=document.getElementById('mpFolder'); var l=myLead(); if(f&&l)f.innerHTML=folderHTML(l);}
+
+  var busy=false;
+  function augment(){
+    var pg=document.getElementById('page-myportal'); if(!pg)return; var l=myLead(); if(!l)return;
+    busy=true;
+    /* ensure the upload folder card exists (grievance is kept per user request) */
+    if(!document.getElementById('mpFolder')){
+      var d=document.createElement('div'); d.className='mp-card mp-folder'; d.id='mpFolder'; d.innerHTML=folderHTML(l);
+      pg.appendChild(d);
+    }
+    setTimeout(function(){busy=false;},40);
+  }
+  window.__mpAugment=augment;
+
+  function observe(){
+    var pg=document.getElementById('page-myportal'); if(!pg)return;
+    if(!pg.__v72){pg.__v72=1;new MutationObserver(function(){ if(busy)return; augment(); }).observe(pg,{childList:true});}
+    augment();
+  }
+  /* reliable attachment: keep a light check running for the whole session so a
+     student who logs in at any time gets the folder (observer handles re-renders) */
+  setInterval(function(){ if(session().role==='Student'&&document.getElementById('page-myportal')&&document.getElementById('page-myportal').classList.contains('on'))observe(); },700);
+  if(document.readyState!=='loading'&&session().role==='Student')observe();
+})();
+
+</script>
+
+<style id="v73Style">
+/* V73 — calendar meetings + notifications */
+#nBell{position:relative;background:var(--panel,#fff);border:1px solid var(--line);border-radius:12px;width:38px;height:38px;display:grid;place-items:center;cursor:pointer;color:var(--paper,#211D35);margin-left:6px}
+#nBell:hover{background:var(--panel-2,#F3F1FA)}
+.nb-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;background:#EC4899;color:#fff;font-size:10px;font-weight:700;display:none;place-items:center;padding:0 4px}
+#nPanel{display:none;position:fixed;top:64px;right:20px;z-index:99997;width:min(360px,92vw);max-height:70vh;background:var(--panel,#fff);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.22);overflow:hidden;flex-direction:column}
+#nPanel.on{display:flex}
+.np-h{padding:13px 16px;border-bottom:1px solid var(--line);font-weight:700;font-size:13.5px;display:flex;align-items:center}
+.np-clear{margin-left:auto;font-size:11px;font-weight:600;color:#7C5CE0;cursor:pointer}
+.np-body{overflow-y:auto;padding:6px}
+.np-item{padding:10px 11px;border-radius:10px;margin:2px 0}
+.np-item.unread{background:rgba(124,92,224,.07)}
+.np-item b{font-size:12.5px;color:var(--paper,#211D35)}
+.np-b{font-size:11.5px;color:var(--mist,#6E688A);margin-top:2px;line-height:1.45}
+.np-t{font-size:10px;color:var(--mist,#6E688A);margin-top:4px}
+.np-empty{padding:22px;text-align:center;color:var(--mist,#6E688A);font-size:12.5px}
+.mt-fl{display:block;font-size:11px;color:var(--mist,#6E688A)}
+.mt-fl .v34-in{width:100%;margin-top:4px}
+.mt-2{display:grid;grid-template-columns:1.4fr 1fr 1.2fr;gap:10px}
+@media(max-width:520px){.mt-2{grid-template-columns:1fr}}
+.mt-ta{min-height:52px;resize:vertical;font-family:inherit;line-height:1.5}
+.mt-picklist{max-height:210px;overflow-y:auto;border:1px solid var(--line);border-radius:12px;padding:6px;display:flex;flex-direction:column;gap:3px}
+.mt-pick{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:6px 8px;border-radius:8px;cursor:pointer;color:var(--paper,#211D35)}
+.mt-pick:hover{background:var(--panel-2,#F3F1FA)}
+.mt-pick.on{background:rgba(124,92,224,.09)}
+.mt-pick span:first-of-type{flex:1}
+.mt-role{font-size:10px;font-weight:600;color:var(--mist,#6E688A);background:var(--panel-2,#F3F1FA);border-radius:20px;padding:2px 8px}
+.mt-role.stu{color:#7C5CE0;background:rgba(124,92,224,.12)}
+.mt-walist{display:flex;flex-wrap:wrap;gap:6px}
+.mt-wa{font-size:11.5px;font-weight:600;color:#0a7d43;background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.3);border-radius:8px;padding:5px 10px;text-decoration:none}
+.mp-nt{padding:9px 0;border-bottom:1px solid var(--line)}
+.mp-nt:last-child{border-bottom:0}
+.mp-nt b{display:block;font-size:12.5px;color:var(--paper,#211D35)}
+.mp-nt span{display:block;font-size:11.5px;color:var(--mist,#6E688A);margin-top:2px}
+.mp-nt i{font-size:10px;color:var(--mist,#6E688A);font-style:normal}
+
+</style>
+<script id="v73Script">
+(function(){
+  if(window.__V73)return; window.__V73=1;
+  /* ═══ V73 — calendar meetings: schedule with attendees (employees + students),
+     edit them, and notify each person — in-app (bell + student portal, synced to
+     all devices) plus one-click email and WhatsApp invites. ═══ */
+  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function session(){return get('gp-session',{})||{};}
+  function creds(){return get('gp-credentials',[])||[];}
+  function master(){return window.__DB_MASTER||[];}
+  function now(){return Date.now();}
+  function uid(p){return (p||'m')+now().toString(36)+Math.floor(Math.random()*1e4);}
+  function stamp(){var d=new Date();return d.toISOString().slice(0,10)+' '+d.toTimeString().slice(0,5);}
+
+  /* ── attendee source: employees + students ── */
+  function profOf(u){return (get('gp-profiles',{})||{})[u]||{};}
+  function attendees(){
+    var out=[];
+    creds().forEach(function(c){
+      if(c.role==='Student'){var l=master().find(function(x){return x.id===c.leadId;})||{};out.push({u:c.u,name:c.name,role:'Student',kind:'student',email:l.email||'',phone:l.phone||''});}
+      else{var p=profOf(c.u);out.push({u:c.u,name:c.name,role:c.role,kind:'staff',email:p.email||'',phone:p.phone||''});}
+    });
+    return out;
+  }
+
+  /* ══ notifications store + cloud sync (sync/notifications) ══ */
+  var NK='gp-notifications';   /* {username:[{id,title,body,at,at2,read,meetingId}]} */
+  function allNotifs(){return get(NK,{})||{};}
+  function myNotifs(){return (allNotifs()[session().u]||[]).slice().sort(function(a,b){return (b.at2||0)-(a.at2||0);});}
+  function pushNotif(u,n){var m=allNotifs();m[u]=m[u]||[];m[u].push(n);if(m[u].length>60)m[u]=m[u].slice(-60);set(NK,m);}
+  /* shared notifier for other layers (e.g. document requests) */
+  window.__notify=function(u,title,body){ if(!u)return; pushNotif(u,{id:uid('n'),title:title,body:body||'',at:stamp(),at2:now(),read:false}); setTimeout(function(){nPush();paintBell();paintStudentIfOpen();},50); };
+  function paintStudentIfOpen(){ if(session().role==='Student'&&document.getElementById('page-myportal'))try{studentNotifs();}catch(e){} }
+  var KEY='AIzaSyDiMflXx_xOzKthBSOPnUoP2Sr79PqE4Cs';
+  var NURL='https://firestore.googleapis.com/v1/projects/medcity-crm-portal/databases/(default)/documents/sync/notifications?key='+KEY;
+  var nPushing=false,nFails=0,nLast=0;
+  function nGet(){return fetch(NURL).then(function(r){if(r.status===404)return {__e:1};if(!r.ok)throw 0;return r.json();}).then(function(j){if(j&&j.__e)return {__e:1};if(!j||!j.fields||!j.fields.data)return {__e:1};try{return JSON.parse(j.fields.data.stringValue||'null')||{__e:1};}catch(e){return {__e:1};}});}
+  function nPut(map){var body={fields:{data:{stringValue:JSON.stringify({byUser:map,updatedAt:String(now())})}}};return fetch(NURL,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.ok;});}
+  function mergeN(cloud,local){var o={};function add(map){Object.keys(map||{}).forEach(function(u){o[u]=o[u]||{};(map[u]||[]).forEach(function(n){var ex=o[u][n.id];if(!ex||(n.at2||0)>=(ex.at2||0))o[u][n.id]=n;});});}add(local);add(cloud);var r={};Object.keys(o).forEach(function(u){r[u]=Object.keys(o[u]).map(function(k){return o[u][k];});});return r;}
+  function nPush(){nLast=now();if(nPushing)return;nPushing=true;nPut(allNotifs()).then(function(){nPushing=false;}).catch(function(){nPushing=false;});}
+  function nPull(){return nGet().then(function(c){nFails=0;if(c&&c.__e){if(Object.keys(allNotifs()).length)nPush();return;}var merged=mergeN(c.byUser||{},allNotifs());if(JSON.stringify(merged)!==JSON.stringify(allNotifs())){set(NK,merged);paintBell();renderPanelIfOpen();}if(JSON.stringify(merged)!==JSON.stringify(c.byUser||{}))nPut(merged);}).catch(function(){nFails++;});}
+  function nTick(){if(nFails>=3)return;if(now()-nLast<6000||nPushing){setTimeout(nTick,4000);return;}nPull().then(function(){setTimeout(nTick,20000);});}
+
+  /* ══ bell in topbar ══ */
+  function ensureBell(){
+    if(session().role==='Student')return;
+    var bar=document.querySelector('.topbar'); if(!bar||document.getElementById('nBell'))return;
+    var b=document.createElement('button');b.id='nBell';b.title='Notifications';b.innerHTML='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg><span class="nb-badge" id="nBadge"></span>';
+    b.onclick=function(e){e.stopPropagation();togglePanel();};
+    /* place near the end of the topbar */
+    bar.appendChild(b); paintBell();
+  }
+  function unread(){return myNotifs().filter(function(n){return !n.read;}).length;}
+  function paintBell(){var bd=document.getElementById('nBadge');if(!bd)return;var n=unread();bd.textContent=n>9?'9+':(n||'');bd.style.display=n?'grid':'none';}
+  function togglePanel(){var p=document.getElementById('nPanel');if(p&&p.classList.contains('on')){p.classList.remove('on');return;}renderPanel();}
+  function renderPanel(){
+    var p=document.getElementById('nPanel');
+    if(!p){p=document.createElement('div');p.id='nPanel';document.body.appendChild(p);document.addEventListener('click',function(e){if(!e.target.closest('#nPanel')&&!e.target.closest('#nBell')){p.classList.remove('on');}});}
+    var list=myNotifs();
+    p.innerHTML='<div class="np-h">Notifications'+(list.length?'<span class="np-clear" onclick="nClear()">Mark all read</span>':'')+'</div>'+
+      '<div class="np-body">'+(list.length?list.map(function(n){return '<div class="np-item'+(n.read?'':' unread')+'"><b>'+esc(n.title)+'</b><div class="np-b">'+esc(n.body||'')+'</div><div class="np-t">'+esc(n.at||'')+'</div></div>';}).join(''):'<div class="np-empty">No notifications yet.</div>')+'</div>';
+    p.classList.add('on');
+    /* mark read on open */
+    var m=allNotifs(),u=session().u;if(m[u]){m[u].forEach(function(n){n.read=true;n.at2=n.at2||now();});set(NK,m);nPush();}
+    paintBell();
+  }
+  function renderPanelIfOpen(){var p=document.getElementById('nPanel');if(p&&p.classList.contains('on'))renderPanel();}
+  window.nClear=function(){var m=allNotifs(),u=session().u;if(m[u]){m[u].forEach(function(n){n.read=true;});set(NK,m);nPush();}paintBell();renderPanel();};
+
+  /* ══ meeting modal ══ */
+  var pickSel={}, pickQ='';
+  function modal(html,w){var id='mtM';if(!document.getElementById(id+'Bg'))document.body.insertAdjacentHTML('beforeend','<div class="docm-bg" id="'+id+'Bg" onclick="mtClose()"></div><div class="docm" id="'+id+'" style="width:'+(w||'min(600px,95vw)')+'"></div>');document.getElementById(id).innerHTML=html;document.getElementById(id+'Bg').classList.add('on');document.getElementById(id).classList.add('on');}
+  window.mtClose=function(){var b=document.getElementById('mtMBg'),m=document.getElementById('mtM');if(b)b.classList.remove('on');if(m)m.classList.remove('on');};
+  window.calMeeting=function(id,iso){
+    var ev=id?(get('gp-cal-events',[])||[]).find(function(e){return e.id===id;}):null;
+    pickSel={}; if(ev&&ev.attendees)ev.attendees.forEach(function(a){pickSel[a.u]=a;}); pickQ='';
+    var date=(ev&&ev.date)||iso||new Date().toISOString().slice(0,10);
+    var time=(ev&&ev.time24)||'10:30';
+    modal('<div class="docm-h"><div><h2>'+(id?'Edit meeting':'Schedule a meeting')+'</h2><div class="sub">Add employees or students — everyone gets notified</div></div><button class="docm-x" onclick="mtClose()">✕</button></div>'+
+      '<div style="padding:16px 22px 22px;display:flex;flex-direction:column;gap:11px">'+
+        '<label class="mt-fl">Title<input class="v34-in" id="mt_title" value="'+esc((ev&&ev.label)||'')+'" placeholder="e.g. NCLEX batch review / Team training"></label>'+
+        '<div class="mt-2"><label class="mt-fl">Date<input class="v34-in" id="mt_date" type="date" value="'+esc(date)+'"></label>'+
+          '<label class="mt-fl">Time<input class="v34-in" id="mt_time" type="time" value="'+esc(time)+'"></label>'+
+          '<label class="mt-fl">Type<select class="v34-in" id="mt_color"><option value="purple"'+(ev&&ev.color==='purple'?' selected':'')+'>Meeting / Class</option><option value="gold"'+(ev&&ev.color==='gold'?' selected':'')+'>Counselling</option><option value="teal"'+(ev&&ev.color==='teal'?' selected':'')+'>Training</option><option value="rose"'+(ev&&ev.color==='rose'?' selected':'')+'>Review</option></select></label></div>'+
+        '<label class="mt-fl">Notes (optional)<textarea class="v34-in mt-ta" id="mt_desc" placeholder="Agenda, location or meeting link">'+esc((ev&&ev.desc)||'')+'</textarea></label>'+
+        '<div class="mt-fl">Attendees <span class="v34-dim" id="mtCount"></span></div>'+
+        '<input class="v34-in" id="mt_pickq" placeholder="Search employees or students…" oninput="mtPickQ(this.value)">'+
+        '<div class="mt-picklist" id="mtPickList"></div>'+
+        '<button class="v34-btn gold" onclick="calMeetingSave(\''+esc(id||'')+'\')">'+(id?'Save meeting':'Schedule &amp; notify')+'</button>'+
+      '</div>');
+    renderPick();
+  };
+  window.mtPickQ=function(v){pickQ=v;renderPick();var i=document.getElementById('mt_pickq');if(i){i.focus();i.value=v;i.setSelectionRange(v.length,v.length);}};
+  window.mtPickTog=function(u){var a=attendees().find(function(x){return x.u===u;});if(!a)return;if(pickSel[u])delete pickSel[u];else pickSel[u]=a;renderPick();};
+  function renderPick(){
+    var box=document.getElementById('mtPickList'); if(!box)return;
+    var all=attendees();
+    var list=all.filter(function(a){return !pickQ||((a.name||'')+(a.role||'')+(a.u||'')).toLowerCase().indexOf(pickQ.toLowerCase())>=0;}).slice(0,40);
+    box.innerHTML=list.map(function(a){var on=!!pickSel[a.u];return '<label class="mt-pick'+(on?' on':'')+'"><input type="checkbox" '+(on?'checked':'')+' onchange="mtPickTog(\''+esc(a.u)+'\')"> <span>'+esc(a.name)+'</span> <span class="mt-role '+(a.kind==='student'?'stu':'')+'">'+esc(a.role)+'</span></label>';}).join('')||'<div class="v34-dim" style="font-size:12px;padding:6px">No match.</div>';
+    var c=document.getElementById('mtCount'); if(c){var n=Object.keys(pickSel).length;c.textContent=n?'· '+n+' selected':'';}
+  }
+  function to12(t){try{return new Date('2026-01-01T'+t).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}catch(e){return t||'10:00 AM';}}
+  window.calMeetingSave=function(id){
+    var g=function(x){return (document.getElementById(x)||{}).value||'';};
+    var title=g('mt_title').trim(); if(!title){toastX('Give the meeting a title');return;}
+    var date=g('mt_date'), t24=g('mt_time'), att=Object.keys(pickSel).map(function(u){return pickSel[u];});
+    var arr=get('gp-cal-events',[])||[]; var s=session();
+    var ev=arr.find(function(e){return e.id===id;});
+    if(!ev){ev={id:uid('ce'),by:s.name||'',createdAt:stamp()};arr.push(ev);}
+    ev.date=date;ev.time24=t24;ev.time=to12(t24);ev.label=title;ev.desc=g('mt_desc').trim();ev.color=g('mt_color')||'purple';ev.attendees=att;ev.isMeeting=1;ev.updatedBy=s.name||'';ev.updatedAt=stamp();
+    set('gp-cal-events',arr);
+    /* notify each attendee (in-app, synced) */
+    att.forEach(function(a){ if(a.u===s.u)return; pushNotif(a.u,{id:uid('n'),title:'Meeting: '+title,body:(ev.time)+' on '+date+(ev.desc?' — '+ev.desc:'')+' · added by '+(s.name||'admin'),at:stamp(),at2:now(),read:false,meetingId:ev.id}); });
+    nPush(); paintBell();
+    try{if(window.renderCal2)renderCal2();}catch(e){}
+    mtClose(); invitePrompt(ev); toastX('Meeting saved — '+att.length+' notified');
+  };
+
+  /* ══ email + whatsapp one-click invites ══ */
+  function invitePrompt(ev){
+    var emails=(ev.attendees||[]).map(function(a){return a.email;}).filter(Boolean);
+    var subject='Meeting: '+ev.label, body='You are invited to "'+ev.label+'" on '+ev.date+' at '+ev.time+'.'+(ev.desc?'\n\n'+ev.desc:'')+'\n\n— Medcity International Academy';
+    var mailto='mailto:'+encodeURIComponent(emails.join(','))+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+    var waList=(ev.attendees||[]).filter(function(a){return a.phone;});
+    modal('<div class="docm-h"><div><h2>Send invites</h2><div class="sub">In-app alerts already sent. Optionally email or WhatsApp them too.</div></div><button class="docm-x" onclick="mtClose()">✕</button></div>'+
+      '<div style="padding:16px 22px 22px;display:flex;flex-direction:column;gap:10px">'+
+        '<a class="v34-btn gold" href="'+esc(mailto)+'" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Email all attendees ('+emails.length+')</a>'+
+        (waList.length?'<div class="v34-dim" style="font-size:11.5px">WhatsApp each attendee:</div><div class="mt-walist">'+waList.map(function(a){var wtext=encodeURIComponent('Hi '+(a.name||'')+', you are invited to "'+ev.label+'" on '+ev.date+' at '+ev.time+'.');var ph=String(a.phone).replace(/[^0-9]/g,'');return '<a class="mt-wa" target="_blank" rel="noopener" href="https://wa.me/'+ph+'?text='+wtext+'">'+esc(a.name)+'</a>';}).join('')+'</div>':'<div class="v34-dim" style="font-size:11.5px">No phone numbers on file for WhatsApp.</div>')+
+        '<button class="v34-btn" onclick="mtClose()">Done</button>'+
+      '</div>','min(480px,94vw)');
+  }
+
+  /* ══ inject "Schedule a meeting" button + edit on the calendar ══ */
+  function wireCal(){
+    var pg=document.getElementById('page-cal'); if(!pg||!pg.classList.contains('on'))return;
+    var head=pg.querySelector('.v34-head > div:last-child');
+    if(head&&!head.querySelector('.mt-newbtn')){head.insertAdjacentHTML('afterbegin','<button class="v34-btn gold mt-newbtn" onclick="calMeeting(\'\')">+ Schedule a meeting</button> ');}
+  }
+  /* wrap calDay to add Edit buttons on meeting rows */
+  function wrapCalDay(){
+    var f=window.calDay;
+    if(typeof f==='function'&&!f.__v73){var w=function(iso){f.apply(this,arguments);setTimeout(function(){
+      var m=document.getElementById('calM'); if(!m)return;
+      var evs=(get('gp-cal-events',[])||[]).filter(function(e){return e.date===iso&&e.isMeeting;});
+      m.querySelectorAll('.doc-row').forEach(function(row){
+        var meet=evs.find(function(e){return row.textContent.indexOf(e.label)>=0;});
+        if(meet&&!row.querySelector('.mt-edit')){row.insertAdjacentHTML('beforeend','<button class="v34-btn mt-edit" style="padding:3px 9px" onclick="calMeeting(\''+meet.id+'\',\''+iso+'\')">Edit</button>');}
+      });
+    },40);};w.__v73=true;window.calDay=w;}
+  }
+
+  /* ══ student portal: show my meeting notifications ══ */
+  function studentNotifs(){
+    var pg=document.getElementById('page-myportal'); if(!pg||session().role!=='Student')return;
+    var list=myNotifs();
+    var card=document.getElementById('mpNotifs');
+    var html='<h3>Your meetings &amp; updates</h3>'+(list.length?list.map(function(n){return '<div class="mp-nt"><b>'+esc(n.title)+'</b><span>'+esc(n.body||'')+'</span><i>'+esc(n.at||'')+'</i></div>';}).join(''):'<div class="v34-dim" style="font-size:12.5px;padding:6px 0">No meetings scheduled yet. You will see them here.</div>');
+    if(!card){card=document.createElement('div');card.className='mp-card';card.id='mpNotifs';card.innerHTML=html;var hero=pg.querySelector('.mp-hero');if(hero)hero.insertAdjacentElement('afterend',card);else pg.insertAdjacentHTML('afterbegin',card.outerHTML);}
+    else card.innerHTML=html;
+  }
+
+  function boot(){
+    ensureBell();
+    if(typeof window.go==='function'&&!window.__v73Go){window.__v73Go=1;var _go=window.go;window.go=function(p,b){_go(p,b);setTimeout(ensureBell,60);if(p==='cal')setTimeout(wireCal,120);};}
+    wrapCalDay();
+    nPull().then(function(){setTimeout(nTick,15000);});
+    setTimeout(ensureBell,900);setTimeout(wrapCalDay,1500);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,1500);setTimeout(boot,3000);
+  /* reliable: keep the student meeting/notif card in sync + bell present */
+  setInterval(function(){ ensureBell(); if(session().role==='Student'&&document.getElementById('page-myportal')&&document.getElementById('page-myportal').classList.contains('on'))studentNotifs(); },900);
+})();
+
+</script>
 </body>
 </html>
