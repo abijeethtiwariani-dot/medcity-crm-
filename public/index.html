@@ -17558,5 +17558,64 @@ body.light .funnel .f-bar,body.light .f-bar{color:#fff!important}
 })();
 
 </script>
+
+<style id="v65Style">
+/* V65 — prominent profile portrait on the profile dashboard (reference design) */
+#page-pv2 .pv-bigav{width:100%;height:230px;border-radius:18px;margin:0 auto 14px;font-size:56px;background-size:cover;background-position:center top}
+#page-pv2 .pv-profile{padding:16px 16px 20px}
+
+</style>
+<script id="v65Script">
+(function(){
+  if(window.__V65)return; window.__V65=1;
+  /* ═══ V65 — keep the personal profile/dashboard focused on the PERSON.
+     V52 moved the "Documentation & visa readiness" card and the fees alert
+     into the profile dashboard (#page-pv2). Per user, those operational cards
+     belong on the OVERVIEW only (#page-dash) — not the profile. This evicts
+     them back to Overview whenever V52 tries to adopt them, and enlarges the
+     profile photo to a prominent portrait (reference design). ═══ */
+  function moveToOverview(el){
+    var dash=document.getElementById('page-dash'); if(!dash||!el)return;
+    if(el.parentNode===dash)return;
+    var greet=document.getElementById('greetHead');
+    if(greet&&greet.parentNode===dash){ greet.insertAdjacentElement('afterend',el); }
+    else { dash.insertBefore(el, dash.firstChild); }
+    el.style.marginBottom='16px';
+  }
+  function evict(){
+    var pv=document.getElementById('page-pv2'); if(!pv)return;
+    ['docDashCard','dashFeeAlert'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el && pv.contains(el)) moveToOverview(el);
+    });
+  }
+  window.__v65Evict=evict;
+
+  function observe(){
+    var pv=document.getElementById('page-pv2'); if(!pv||pv.__v65)return; pv.__v65=1;
+    /* MutationObserver fires as a microtask (before paint) → no visible flash */
+    new MutationObserver(function(muts){
+      var hit=false;
+      muts.forEach(function(m){ [].forEach.call(m.addedNodes,function(n){ if(n&&(n.id==='docDashCard'||n.id==='dashFeeAlert'))hit=true; }); });
+      if(hit) evict();
+    }).observe(pv,{childList:true});
+    evict();
+  }
+
+  function boot(){
+    observe();
+    var _go=window.go;
+    if(typeof _go==='function' && !window.__v65Go){window.__v65Go=1;
+      window.go=function(p,b){ _go(p,b);
+        if(p==='pv2'){ setTimeout(evict,10); setTimeout(evict,300); }
+      };
+    }
+    setTimeout(evict,60); setTimeout(evict,700);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,1200); setTimeout(boot,2400); setTimeout(boot,3400);
+})();
+
+</script>
 </body>
 </html>
