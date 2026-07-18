@@ -17769,5 +17769,230 @@ body.light .funnel .f-bar,body.light .f-bar{color:#fff!important}
 })();
 
 </script>
+
+<style id="v67Style">
+/* V67 — student portal: stage card + admin control */
+.mp-stagecard{background:linear-gradient(120deg,rgba(124,92,224,.10),rgba(196,236,90,.10))!important;border:1px solid var(--line)}
+.mp-sc-eb{font-family:var(--font-m,monospace);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7C5CE0;margin-bottom:5px}
+.mp-sc-h{font:700 17px var(--font-d,sans-serif);color:var(--paper,#211D35);margin:0 0 6px}
+.mp-sc-msg{font-size:13px;color:var(--paper,#211D35);line-height:1.55;margin:0 0 10px}
+.mp-sc-todoh{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mist,#6E688A);margin-bottom:6px}
+.mp-sc-todo{margin:0;padding-left:18px}
+.mp-sc-todo li{font-size:12.5px;color:var(--paper,#211D35);line-height:1.7}
+/* admin */
+.sp-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.sp-tab{font-size:12.5px;font-weight:600;color:var(--mist,#6E688A);background:var(--panel-2,#F3F1FA);border:1px solid var(--line);border-radius:20px;padding:8px 16px;cursor:pointer;font-family:inherit}
+.sp-tab.on{color:#fff;background:linear-gradient(90deg,#7C5CE0,#9E7BFF);border-color:transparent}
+.sp-auto{margin-bottom:14px}
+.sp-switch{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+.sp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:12px}
+.sp-stage .sp-sh{font-size:13px;margin-bottom:8px;color:#7C5CE0}
+.sp-fl{display:block;font-size:11px;color:var(--mist,#6E688A);margin-bottom:8px}
+.sp-fl .v34-in{width:100%;margin-top:3px}
+.sp-ta{min-height:56px;resize:vertical;font-family:inherit;line-height:1.5}
+.sp-checks{display:flex;gap:14px;flex-wrap:wrap}
+.sp-lbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.sp-badge{font-size:11px;font-weight:600;border-radius:20px;padding:3px 10px;display:inline-block}
+.sp-badge.yes{color:#2E7D5B;background:rgba(70,227,176,.12);border:1px solid rgba(70,227,176,.3)}
+.sp-badge.no{color:var(--mist,#6E688A);background:var(--panel-2,#F3F1FA);border:1px solid var(--line)}
+.sp-pg{display:flex;gap:5px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.sp-pgb{min-width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel,#fff);color:var(--paper,#211D35);cursor:pointer;font-size:12px;font-family:inherit}
+.sp-pgb.on{background:#7C5CE0;color:#fff;border-color:transparent}
+
+</style>
+<script id="v67Script">
+(function(){
+  if(window.__V67)return; window.__V67=1;
+  /* ═══ V67 — student portal: auto-issue a login when a lead is added,
+     stage-differentiated view (each student sees guidance for their status),
+     and an admin control page for it all. Builds on V45 (renderMyPortal) +
+     V27 crIssueStudentLogin + V64 cloud sync (so student logins sync too). ═══ */
+  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function session(){return get('gp-session',{})||{};}
+  function isAdmin(){return (session().role||'')==='Admin';}
+  function master(){return window.__DB_MASTER||[];}
+  function vertLeads(){return window.DB1000||master();}
+  function creds(){return get('gp-credentials',[])||[];}
+  function studentCred(leadId){return creds().find(function(c){return c.role==='Student'&&c.leadId===leadId;});}
+
+  var STAGES=['New','Contacted','Qualified','Counselled','Applied','Offer','Converted','Lost'];
+
+  /* ─── stage content config (admin-editable) ─── */
+  var MK_STAGE='gp-student-stages', MK_AUTO='gp-student-autoissue';
+  var DEFAULTS={
+    New:{head:'We have received your enquiry',msg:'Thank you for choosing Medcity. Your counsellor will reach out shortly to understand your goals and guide your next steps.',todo:['Keep your phone reachable for our welcome call','Keep your academic certificates handy'],docs:false,grievance:true},
+    Contacted:{head:'Your counsellor is in touch',msg:'We are getting to know your profile and goals. Ask us anything you are unsure about.',todo:['Share your preferred country / goal and intake','Tell us your budget and timeline'],docs:true,grievance:true},
+    Qualified:{head:'You are a great fit',msg:'Your profile has been assessed and you qualify for the pathway. Next we plan your programme and shortlist.',todo:['Confirm your programme choice with your counsellor','Start collecting the documents listed below'],docs:true,grievance:true},
+    Counselled:{head:'Your plan is ready',msg:'We have counselled you on the best pathway. Now we prepare your application.',todo:['Upload any pending documents','Pay the registration fee to proceed'],docs:true,grievance:true},
+    Applied:{head:'Your application is submitted',msg:'Your application has been sent. We are actively tracking it and will update you the moment there is news.',todo:['Keep documents ready for any university request','Watch this portal for offer updates'],docs:true,grievance:true},
+    Offer:{head:'Congratulations — you have an offer',msg:'You have received an offer. Next steps are accepting it, fee payment, and the visa stage.',todo:['Review and accept your offer with your counsellor','Prepare for the visa / fee stage'],docs:true,grievance:true},
+    Converted:{head:'You are enrolled — welcome aboard',msg:'Everything is confirmed. We will support you through pre-departure / joining and beyond.',todo:['Complete pre-departure / joining formalities','Follow your batch or class schedule'],docs:true,grievance:true},
+    Lost:{head:'Your application is currently closed',msg:'This application is not active right now. You can restart anytime — we are here to help.',todo:['Contact your counsellor to reopen your application'],docs:false,grievance:true}
+  };
+  function stageCfg(){var c=get(MK_STAGE,null)||{};var out={};STAGES.forEach(function(st){out[st]=Object.assign({},DEFAULTS[st],c[st]||{});});return out;}
+  function autoOn(){var v=get(MK_AUTO,null);return v==null?true:!!v;}
+
+  /* ─── auto-issue a student login for a lead ─── */
+  window.autoIssueStudent=function(lead){
+    if(!lead||!lead.id)return null;
+    if(typeof window.crIssueStudentLogin!=='function')return null;
+    if(studentCred(lead.id))return studentCred(lead.id);
+    try{return window.crIssueStudentLogin(lead.name,lead.phone,lead.id);}catch(e){return null;}
+  };
+
+  /* hook the Add-Academy-Lead submit so a new lead auto-gets a login */
+  function hookAdd(){
+    var f=window.acAddSubmit;
+    if(typeof f==='function'&&!f.__v67){
+      var w=function(){var before=master().length; var r=f.apply(this,arguments);
+        try{ if(autoOn()){var m=master(); if(m.length>before){var nl=m[m.length-1]; var rec=window.autoIssueStudent(nl); if(rec)toastX('Student login auto-created for '+(nl.name||'lead')+' — see Student Portal to share it');}} }catch(e){}
+        return r;};
+      w.__v67=true; window.acAddSubmit=w;
+    }
+    /* Mimo lead capture path (if present) */
+    var mc=window.__mimoCaptureDone;
+  }
+
+  /* ─── student portal: stage-differentiated card + visibility ─── */
+  function myLead(){var s=session(); if(s.role!=='Student'||!s.leadId)return null; return master().find(function(x){return x.id===s.leadId;})||null;}
+  function augment(){
+    var pg=document.getElementById('page-myportal'); if(!pg)return;
+    var l=myLead(); if(!l)return;
+    var cfg=stageCfg()[l.status]||stageCfg().New;
+    if(!pg.querySelector('.mp-stagecard')){
+      var hero=pg.querySelector('.mp-hero');
+      var todo=(cfg.todo||[]).map(function(t){return '<li>'+esc(t)+'</li>';}).join('');
+      var html='<div class="mp-card mp-stagecard"><div class="mp-sc-eb">'+esc(l.status)+' · what this means for you</div>'+
+        '<h3 class="mp-sc-h">'+esc(cfg.head||l.status)+'</h3><p class="mp-sc-msg">'+esc(cfg.msg||'')+'</p>'+
+        (todo?'<div class="mp-sc-todoh">What to do next</div><ul class="mp-sc-todo">'+todo+'</ul>':'')+'</div>';
+      if(hero)hero.insertAdjacentHTML('afterend',html); else pg.insertAdjacentHTML('afterbegin',html);
+    }
+    pg.querySelectorAll('.mp-card').forEach(function(card){
+      var h=card.querySelector('h3'); if(!h)return; var t=h.textContent||'';
+      if(/Your documents/i.test(t))card.style.display=(cfg.docs===false?'none':'');
+      if(/grievance/i.test(t)||/My escalations/i.test(t))card.style.display=(cfg.grievance===false?'none':'');
+    });
+  }
+  function wrapPortal(){
+    var f=window.renderMyPortal;
+    if(typeof f==='function'&&!f.__v67){
+      var w=function(){var r=f.apply(this,arguments);setTimeout(augment,0);return r;};
+      w.__v67=true; window.renderMyPortal=w;
+      if(session().role==='Student')setTimeout(function(){try{window.renderMyPortal();}catch(e){}},80);
+    }
+  }
+
+  /* ═══════════ ADMIN PAGE — Student Portal control ═══════════ */
+  var tab='stages', mPage=0, mQ='';
+  function renderAdmin(){
+    var pg=document.getElementById('page-studentportal'); if(!pg)return;
+    if(!isAdmin()){pg.innerHTML='<div class="v34-head"><div><div class="v34-eyebrow">Restricted</div><p class="v34-sub">This backend page is admin-only.</p></div></div>';return;}
+    var head='<div class="v34-head"><div><div class="v34-eyebrow">Admin backend · student portal</div>'+
+      '<p class="v34-sub">Auto-create a student login when a lead is added, choose what students see at each status, and manage / share their logins.</p></div></div>'+
+      '<div class="sp-tabs">'+
+        '<button class="sp-tab'+(tab==='stages'?' on':'')+'" onclick="spTab(\'stages\')">What students see (by status)</button>'+
+        '<button class="sp-tab'+(tab==='logins'?' on':'')+'" onclick="spTab(\'logins\')">Student logins</button>'+
+      '</div>';
+    pg.innerHTML=head+(tab==='stages'?stagesTab():loginsTab());
+  }
+
+  function stagesTab(){
+    var cfg=stageCfg();
+    var toggle='<div class="qc-card sp-auto"><label class="sp-switch"><input type="checkbox" '+(autoOn()?'checked':'')+' onchange="spAuto(this.checked)"> <b>Auto-create a login for every new lead</b></label>'+
+      '<div class="v34-dim" style="font-size:12px;margin-top:4px">When ON, adding a lead instantly issues that student a username + password (synced to all devices). Share it from the Student logins tab.</div></div>';
+    var editors=STAGES.map(function(st){
+      var c=cfg[st];
+      return '<div class="qc-card sp-stage"><div class="sp-sh"><b>'+esc(st)+'</b></div>'+
+        '<label class="sp-fl">Headline<input class="v34-in" id="sp_h_'+st+'" value="'+esc(c.head)+'"></label>'+
+        '<label class="sp-fl">Message<textarea class="v34-in sp-ta" id="sp_m_'+st+'">'+esc(c.msg)+'</textarea></label>'+
+        '<label class="sp-fl">What to do next (one per line)<textarea class="v34-in sp-ta" id="sp_t_'+st+'">'+esc((c.todo||[]).join('\n'))+'</textarea></label>'+
+        '<div class="sp-checks"><label class="v34-ck"><input type="checkbox" id="sp_d_'+st+'" '+(c.docs!==false?'checked':'')+'> Show documents</label>'+
+          '<label class="v34-ck"><input type="checkbox" id="sp_g_'+st+'" '+(c.grievance!==false?'checked':'')+'> Allow grievances</label></div>'+
+      '</div>';
+    }).join('');
+    return toggle+'<div class="sp-grid">'+editors+'</div>'+
+      '<div style="margin-top:6px"><button class="v34-btn gold" onclick="spSaveStages()">Save what students see</button> <button class="v34-btn" onclick="spResetStages()">Reset to defaults</button></div>';
+  }
+  window.spTab=function(t){tab=t;renderAdmin();};
+  window.spAuto=function(on){set(MK_AUTO,!!on);toastX('Auto-create logins '+(on?'ON':'OFF'));};
+  window.spSaveStages=function(){
+    var c={};STAGES.forEach(function(st){
+      c[st]={head:(document.getElementById('sp_h_'+st)||{}).value||'',msg:(document.getElementById('sp_m_'+st)||{}).value||'',
+        todo:((document.getElementById('sp_t_'+st)||{}).value||'').split('\n').map(function(x){return x.trim();}).filter(Boolean),
+        docs:!!(document.getElementById('sp_d_'+st)||{}).checked,grievance:!!(document.getElementById('sp_g_'+st)||{}).checked};
+    });
+    set(MK_STAGE,c);toastX('Saved — students now see this at each status');
+  };
+  window.spResetStages=function(){set(MK_STAGE,null);toastX('Reset to defaults');renderAdmin();};
+
+  function loginsTab(){
+    var L=vertLeads().filter(function(l){return !mQ|| (l.name||'').toLowerCase().indexOf(mQ.toLowerCase())>=0 || (l.id||'').toLowerCase().indexOf(mQ.toLowerCase())>=0;});
+    var issued=creds().filter(function(c){return c.role==='Student';}).length;
+    var per=15, pages=Math.max(1,Math.ceil(L.length/per)); if(mPage>=pages)mPage=0;
+    var rows=L.slice(mPage*per,mPage*per+per).map(function(l){
+      var cr=studentCred(l.id);
+      var act=cr?'<button class="v34-btn" style="padding:5px 11px;font-size:11px" onclick="spShow(\''+esc(l.id)+'\')">Show login</button>'
+                :'<button class="v34-btn gold" style="padding:5px 11px;font-size:11px" onclick="spCreate(\''+esc(l.id)+'\')">Create login</button>';
+      return '<tr><td><b>'+esc(l.name)+'</b><br><span class="v34-dim" style="font-size:11px">'+esc(l.id)+' · '+esc(l.course||'')+'</span></td>'+
+        '<td>'+esc(l.status||'')+'</td>'+
+        '<td>'+(cr?'<span class="sp-badge yes">'+esc(cr.u)+'</span>':'<span class="sp-badge no">not issued</span>')+'</td>'+
+        '<td style="text-align:right">'+act+'</td></tr>';
+    }).join('');
+    return '<div class="qc-card">'+
+      '<div class="sp-lbar"><b style="font-size:13px">'+issued+' student login(s) issued</b>'+
+        '<input class="v34-in" placeholder="Search name / lead id…" value="'+esc(mQ)+'" oninput="spSearch(this.value)" style="max-width:240px">'+
+        '<button class="v34-btn" style="margin-left:auto" onclick="spBulk()">Generate logins for all '+L.length+' shown</button></div>'+
+      '<div class="v34-tblwrap"><table class="v34-tbl"><thead><tr><th>Student</th><th>Status</th><th>Login</th><th></th></tr></thead><tbody>'+
+      (rows||'<tr><td colspan="4" class="v34-dim" style="padding:12px">No leads match.</td></tr>')+'</tbody></table></div>'+
+      '<div class="sp-pg">'+Array.from({length:Math.min(pages,12)},function(_,i){return '<button class="sp-pgb'+(i===mPage?' on':'')+'" onclick="spPage('+i+')">'+(i+1)+'</button>';}).join('')+(pages>12?' <span class="v34-dim">of '+pages+'</span>':'')+'</div>'+
+    '</div>';
+  }
+  window.spSearch=function(v){mQ=v;mPage=0;var pg=document.getElementById('page-studentportal');var bar=pg&&pg.querySelector('.sp-lbar');/* re-render body only */renderAdmin();var inp=document.querySelector('.sp-lbar input');if(inp){inp.focus();inp.value=mQ;inp.setSelectionRange(mQ.length,mQ.length);}};
+  window.spPage=function(i){mPage=i;renderAdmin();};
+  window.spCreate=function(id){var l=master().find(function(x){return x.id===id;});if(!l)return;var rec=window.autoIssueStudent(l);if(rec){toastX('Login created for '+l.name);spShow(id);}renderAdmin();};
+  window.spShow=function(id){
+    var l=master().find(function(x){return x.id===id;}); var cr=studentCred(id); if(!l||!cr)return;
+    if(!document.getElementById('spCredBg'))document.body.insertAdjacentHTML('beforeend','<div class="docm-bg" id="spCredBg" onclick="document.getElementById(\'spCredBg\').classList.remove(\'on\')"></div><div class="docm" id="spCredM" style="width:min(440px,94vw)"></div>');
+    document.getElementById('spCredM').innerHTML='<div class="docm-h"><div><h2>Student login</h2><div class="sub">Share privately with '+esc(l.name)+'</div></div><button class="docm-x" onclick="document.getElementById(\'spCredBg\').classList.remove(\'on\');document.getElementById(\'spCredM\').classList.remove(\'on\')">✕</button></div>'+
+      '<div style="padding:16px 20px">'+
+      '<p style="font-size:12.5px;color:var(--mist);margin:0 0 12px">They sign in at the same MEDCITY login screen and land only on their own status, documents and grievances portal.</p>'+
+      '<div class="cr-f"><label>Username</label><input readonly value="'+esc(cr.u)+'" onclick="this.select()"></div>'+
+      '<div class="cr-f"><label>Password</label><input readonly value="'+esc(cr.p)+'" onclick="this.select()"></div>'+
+      '<div class="cr-f"><label>Login link</label><input readonly value="'+esc(location.origin+location.pathname)+'" onclick="this.select()"></div></div>';
+    document.getElementById('spCredBg').classList.add('on');document.getElementById('spCredM').classList.add('on');
+  };
+  window.spBulk=function(){
+    var L=vertLeads().filter(function(l){return !mQ|| (l.name||'').toLowerCase().indexOf(mQ.toLowerCase())>=0 || (l.id||'').toLowerCase().indexOf(mQ.toLowerCase())>=0;});
+    var todo=L.filter(function(l){return !studentCred(l.id);});
+    if(!todo.length){toastX('Every shown student already has a login');return;}
+    if(!confirm('Create logins for '+todo.length+' students? They will sync to all devices.'))return;
+    todo.forEach(function(l){window.autoIssueStudent(l);});
+    toastX(todo.length+' student logins created');renderAdmin();
+  };
+
+  /* ─── nav + boot ─── */
+  function boot(){
+    hookAdd(); wrapPortal();
+    var content=document.querySelector('.content'), side=document.querySelector('.side');
+    if(content&&!document.getElementById('page-studentportal')){var d=document.createElement('div');d.className='page';d.id='page-studentportal';content.appendChild(d);}
+    try{if(typeof titles!=='undefined')titles.studentportal=['Student Portal','auto logins · what students see'];}catch(e){}
+    if(side&&isAdmin()&&!document.querySelector('.nav-btn[data-page=studentportal]')){
+      var ref=document.querySelector('.nav-btn[data-page=access]')||document.querySelector('.nav-btn[data-page=credentials]');
+      var b=document.createElement('button');b.className='nav-btn';b.dataset.page='studentportal';b.setAttribute('onclick',"go('studentportal',this)");
+      b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M7 10v5c0 1 2.5 3 5 3s5-2 5-3v-5"/></svg>Student Portal';
+      if(ref&&ref.parentNode)ref.parentNode.insertBefore(b,ref.nextSibling); else side.appendChild(b);
+    }
+    if(typeof window.go==='function'&&!window.__v67Go){window.__v67Go=1;var _go=window.go;
+      window.go=function(p,btn){_go(p,btn);if(p==='studentportal')setTimeout(renderAdmin,50);};}
+    setTimeout(hookAdd,1500);setTimeout(wrapPortal,1500);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,1400);setTimeout(boot,2800);
+})();
+
+</script>
 </body>
 </html>
