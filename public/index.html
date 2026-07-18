@@ -16321,204 +16321,6 @@ body.light #docDashCard{background:linear-gradient(120deg,rgba(244,241,251,.6),r
 
 </script>
 
-<style id="v54Style">
-/* V54 - editable profile + picture, student explorer */
-.pf-preview{width:84px;height:84px;flex:none;border-radius:20px;background:linear-gradient(135deg,#7C5CE0,#4E35A8);background-size:cover;background-position:center;color:#fff;display:flex;align-items:center;justify-content:center;font:800 26px var(--font-d)}
-.se-card{margin-bottom:16px}
-.se-results{margin-top:10px;display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto}
-.se-row{display:flex;flex-direction:column;gap:2px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;cursor:pointer;transition:.12s;font-size:13px}
-.se-row:hover{border-color:#7C5CE0;transform:translateX(2px)}
-.se-row b{color:var(--paper)}
-.se-row .v34-dim{font-size:11px}
-.tr-row:hover{background:rgba(124,92,224,.06)}
-
-</style>
-<script id="v54Script">
-(function(){
-  if(window.__V54)return; window.__V54=1;
-  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
-  function set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-  function toastX(m){try{toast(m);}catch(e){}}
-  function session(){return get('gp-session',{})||{};}
-  function isAdmin(){return (session().role||'')==='Admin';}
-  function initials(n){return String(n||'?').trim().split(/\s+/).slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();}
-  function creds(){return get('gp-credentials',[])||[];}
-
-  /* ═══ profiles: {username:{name,role,branch,phone,email,title,pic}} ═══ */
-  var PK='gp-profiles';
-  function profs(){return get(PK,{});}
-  function profOf(u){return profs()[u]||{};}
-  function myU(){return session().u||'admin';}
-  function myProf(){var s=session();return Object.assign({name:s.name,role:s.role,branch:s.branch},profOf(myU()));}
-
-  /* resize any uploaded image to a 240px square jpeg data-URI */
-  function readPic(file,cb){
-    if(!file){cb('');return;}
-    var r=new FileReader();
-    r.onload=function(){var img=new Image();img.onload=function(){
-      var S=240,side=Math.min(img.width,img.height),c=document.createElement('canvas');c.width=S;c.height=S;
-      c.getContext('2d').drawImage(img,(img.width-side)/2,(img.height-side)/2,side,side,0,0,S,S);
-      cb(c.toDataURL('image/jpeg',.82));
-    };img.src=r.result;};
-    r.readAsDataURL(file);
-  }
-  window.__v54pic='';
-
-  /* paint the picture onto every avatar for the logged-in user */
-  function paintAvatars(){
-    var p=myProf();
-    var bg=p.pic?'background-image:url('+p.pic+');background-size:cover;background-position:center;color:transparent':'';
-    document.querySelectorAll('.pv-bigav').forEach(function(el){el.setAttribute('style',(el.getAttribute('style')||'')+';'+bg);});
-    /* sidebar avatar (first square in side-foot) */
-    var foot=document.querySelector('.side-foot');
-    if(foot){var av=foot.querySelector('.profile-av,.cred-av,.sf-av')||foot.firstElementChild;
-      if(av&&av.tagName!=='BUTTON'&&p.pic){av.style.backgroundImage='url('+p.pic+')';av.style.backgroundSize='cover';av.style.backgroundPosition='center';av.style.color='transparent';}}
-  }
-
-  /* ═══ Edit Profile modal (admin only) ═══ */
-  window.pfOpen=function(){
-    if(!isAdmin()){toastX('Only an admin can edit profiles - ask your admin to update your photo & details');return;}
-    ensure();
-    var C=creds();
-    var target=myU();
-    renderEdit(target);
-    document.getElementById('pfBg').classList.add('on');document.getElementById('pfM').classList.add('on');
-  };
-  window.pfClose=function(){var b=document.getElementById('pfBg'),m=document.getElementById('pfM');if(b)b.classList.remove('on');if(m)m.classList.remove('on');window.__v54pic='';};
-  function ensure(){
-    if(document.getElementById('pfBg'))return;
-    document.body.insertAdjacentHTML('beforeend','<div class="docm-bg" id="pfBg" onclick="pfClose()"></div><div class="docm" id="pfM" style="width:min(520px,95vw)"></div>');
-  }
-  window.pfPick=function(u){window.__v54pic='';renderEdit(u);};
-  window.pfUpload=function(inp){readPic(inp.files[0],function(d){window.__v54pic=d;var pv=document.getElementById('pfPreview');if(pv&&d){pv.style.backgroundImage='url('+d+')';pv.style.color='transparent';pv.textContent='';}});};
-  function renderEdit(u){
-    var m=document.getElementById('pfM'); if(!m)return;
-    var C=creds();
-    var cred=C.find(function(x){return x.u===u;})||{u:u,name:'',role:'Counsellor',branch:''};
-    var p=Object.assign({name:cred.name,role:cred.role,branch:cred.branch},profOf(u));
-    var pic=window.__v54pic||p.pic||'';
-    var roles=['Admin','Manager','Branch Head','Team Lead','Counsellor','Consultant','Faculty','Documentation Executive','Finance Officer'];
-    m.innerHTML='<div class="docm-h"><div><h2>Edit profile</h2><div class="sub">Admin can set anyone\'s photo, name and details</div></div><button class="docm-x" onclick="pfClose()">✕</button></div>'+
-      '<div style="padding:18px 22px;display:flex;flex-direction:column;gap:12px">'+
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="v34-dim" style="font-size:11px">Whose profile:</span>'+
-          '<select class="v34-in" onchange="pfPick(this.value)">'+C.map(function(c){return '<option value="'+esc(c.u)+'"'+(c.u===u?' selected':'')+'>'+esc(c.name)+' ('+esc(c.role)+')</option>';}).join('')+'</select></div>'+
-        '<div style="display:flex;gap:16px;align-items:center">'+
-          '<div class="pf-preview" id="pfPreview" style="'+(pic?'background-image:url('+pic+');color:transparent':'')+'">'+(pic?'':esc(initials(p.name)))+'</div>'+
-          '<div><label class="v34-btn gold" style="cursor:pointer;display:inline-block">Upload photo<input type="file" accept="image/*" style="display:none" onchange="pfUpload(this)"></label>'+
-          '<div class="v34-dim" style="font-size:10.5px;margin-top:5px">JPG/PNG, auto-cropped to a square</div></div></div>'+
-        '<label class="nd-f">Full name<input class="v34-in" id="pfName" value="'+esc(p.name||'')+'"></label>'+
-        '<div class="nd-grid"><label class="nd-f">Role<select class="v34-in" id="pfRole">'+roles.map(function(r){return '<option'+(p.role===r?' selected':'')+'>'+r+'</option>';}).join('')+'</select></label>'+
-          '<label class="nd-f">Branch<input class="v34-in" id="pfBranch" value="'+esc(p.branch||'')+'"></label>'+
-          '<label class="nd-f">Phone<input class="v34-in" id="pfPhone" value="'+esc(p.phone||'')+'"></label>'+
-          '<label class="nd-f">Email<input class="v34-in" id="pfEmail" value="'+esc(p.email||'')+'"></label></div>'+
-        '<label class="nd-f">Title / designation<input class="v34-in" id="pfTitle" value="'+esc(p.title||'')+'" placeholder="e.g. Senior Overseas Counsellor"></label>'+
-        '<button class="v34-btn gold" onclick="pfSave(\''+esc(u)+'\')">Save profile</button>'+
-      '</div>';
-  }
-  window.pfSave=function(u){
-    var P=profs();
-    P[u]=Object.assign({},P[u],{
-      name:(document.getElementById('pfName')||{}).value||'',
-      role:(document.getElementById('pfRole')||{}).value||'',
-      branch:(document.getElementById('pfBranch')||{}).value||'',
-      phone:(document.getElementById('pfPhone')||{}).value||'',
-      email:(document.getElementById('pfEmail')||{}).value||'',
-      title:(document.getElementById('pfTitle')||{}).value||''
-    });
-    if(window.__v54pic)P[u].pic=window.__v54pic;
-    set(PK,P);
-    /* keep the credential name in sync */
-    var C=creds(), c=C.find(function(x){return x.u===u;}); if(c){c.name=P[u].name||c.name;set('gp-credentials',C);}
-    /* if editing myself, update the live session name */
-    if(u===myU()){var s=session();s.name=P[u].name||s.name;set('gp-session',s);}
-    window.__v54pic='';
-    pfClose(); paintAvatars();
-    try{var nav=document.querySelector('.nav-btn[data-page=pv2]');if(document.getElementById('page-pv2').classList.contains('on'))go('pv2',nav);}catch(e){}
-    toastX('Profile saved for '+(P[u].name||u));
-  };
-
-  /* wire the "Edit Profile" button on the dashboard + repaint on open */
-  function wirePv2(){
-    var _go=window.go;
-    if(typeof _go==='function'&&!window.__v54Go){window.__v54Go=1;window.go=function(p,btn){_go(p,btn);
-      if(p==='pv2'){setTimeout(function(){
-        var b=document.querySelector('#page-pv2 .pv-lime');
-        if(b){b.setAttribute('onclick','pfOpen()'); b.textContent=isAdmin()?'Edit Profile':'My details';}
-        /* show title under name if set */
-        var p2=myProf(),pg=document.getElementById('page-pv2');
-        var sub=pg&&pg.querySelector('.pv-profile .pv-ks'); if(sub&&p2.title)sub.textContent=p2.title;
-        paintAvatars();
-      },260);}
-    };}
-  }
-
-  /* ═══ Student explorer: select any student in Digital Twin & Applications ═══ */
-  window.seSearch=function(q){
-    q=(q||'').toLowerCase();var box=document.getElementById('seResults');if(!box)return;
-    if(q.length<2){box.innerHTML='<span class="v34-dim" style="font-size:12px">Type at least 2 letters to find a student…</span>';return;}
-    var res=(window.__DB_MASTER||[]).filter(function(l){return (l.name+' '+l.id+' '+(l.course||'')+' '+(l.branch||'')).toLowerCase().indexOf(q)>=0;}).slice(0,12);
-    box.innerHTML=res.map(function(l){return '<div class="se-row" onclick="seOpen(\''+esc(l.id)+'\')"><b>'+esc(l.name)+'</b><span class="v34-dim">'+esc(l.id)+' · '+esc(l.course||'')+' · '+esc(l.branch||'')+' · '+esc(l.vertical)+'</span></div>';}).join('')||'<span class="v34-dim" style="font-size:12px">No student matches.</span>';
-  };
-  window.seOpen=function(id){
-    var l=(window.__DB_MASTER||[]).find(function(x){return x.id===id;});if(!l)return;
-    try{ if(l.vertical==='Academy'&&window.alLead)return alLead(id); if(window.saLead)return saLead(id); if(window.alLead)return alLead(id);}catch(e){}
-    toastX('Opening '+l.name);
-  };
-  function explorer(){
-    return '<div class="qc-card se-card"><h4 class="v34-sh" style="margin-top:0">Look up any student</h4>'+
-      '<p class="v34-sub" style="margin-bottom:8px">Search across all '+((window.__DB_MASTER||[]).length)+' students and open the full profile.</p>'+
-      '<input class="v34-in" id="seQ" placeholder="Search by name, ID, course or branch" oninput="seSearch(this.value)" style="width:100%">'+
-      '<div id="seResults" class="se-results"><span class="v34-dim" style="font-size:12px">Type at least 2 letters to find a student…</span></div></div>';
-  }
-  function injectExplorer(pid){
-    var pg=document.getElementById(pid); if(!pg||pg.querySelector('.se-card'))return;
-    pg.insertAdjacentHTML('afterbegin',explorer());
-  }
-
-  /* ═══ editable Travel Readiness on the Visa page ═══ */
-  var RK='gp-visa-readiness';
-  var RITEMS=['Flight booked','Accommodation confirmed','Forex card loaded','SIM + insurance','Pre-departure briefing','Documents pack ready'];
-  window.trToggle=function(stu,i){
-    var R=get(RK,{}),k=stu; R[k]=R[k]||{};
-    var cur=R[k][i]||(i<2?'DONE':'PENDING'); R[k][i]=cur==='DONE'?'PENDING':'DONE'; set(RK,R);
-    try{renderVisa();}catch(e){}
-  };
-  function wrapVisa(){
-    if(window.__v54Visa||typeof window.renderVisa!=='function')return;
-    window.__v54Visa=1;
-    var _rv=window.renderVisa;
-    window.renderVisa=function(){
-      _rv();
-      try{
-        var side=document.getElementById('visaSide');
-        if(side&&/Travel Readiness/.test(side.innerHTML)){
-          var stu=(side.querySelector('h3')||{}).textContent.replace('Travel Readiness','').replace(/[—-].*/,'').trim()||'student';
-          var R=get(RK,{})[stu]||{};
-          side.innerHTML='<h3>Travel Readiness — '+esc(stu)+'<span class="tag">editable · click to update</span></h3>'+
-            RITEMS.map(function(t,i){var st=R[i]||(i<2?'DONE':'PENDING');return '<div class="doc-row tr-row" onclick="trToggle(\''+esc(stu)+'\','+i+')" style="cursor:pointer">'+esc(t)+'<span class="badge '+(st==='DONE'?'b-ok':'b-warn')+'">'+st+'</span></div>';}).join('')+
-            '<div class="ai-msg" style="margin-top:12px"><b>Editable:</b> click any row to flip it between DONE and PENDING. Saved per student.</div>';
-        }
-      }catch(e){}
-    };
-  }
-
-  function boot(){
-    wirePv2(); wrapVisa();
-    /* explorer on nav to twin/apps */
-    var _go=window.go;
-    if(typeof _go==='function'&&!window.__v54Exp){window.__v54Exp=1;window.go=function(p,btn){_go(p,btn);
-      if(p==='twin')setTimeout(function(){injectExplorer('page-twin');},120);
-      if(p==='apps')setTimeout(function(){injectExplorer('page-apps');},120);
-    };}
-    setTimeout(paintAvatars,400);
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
-  setTimeout(boot,2000); setTimeout(paintAvatars,2600);
-})();
-
-</script>
-
 <style id="v55Style">
 /* V55 - calendar day dot */
 .cv-dot{display:inline-block;width:8px;height:8px;border-radius:99px;margin-right:6px;vertical-align:middle}
@@ -16925,6 +16727,345 @@ body.light #docDashCard{background:linear-gradient(120deg,rgba(244,241,251,.6),r
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
   setTimeout(boot,2100);
+})();
+
+</script>
+
+<style id="v54Style">
+/* V54 - editable profile + picture, student explorer */
+.pf-preview{width:84px;height:84px;flex:none;border-radius:20px;background:linear-gradient(135deg,#7C5CE0,#4E35A8);background-size:cover;background-position:center;color:#fff;display:flex;align-items:center;justify-content:center;font:800 26px var(--font-d)}
+.se-card{margin-bottom:16px}
+.se-results{margin-top:10px;display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto}
+.se-row{display:flex;flex-direction:column;gap:2px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;cursor:pointer;transition:.12s;font-size:13px}
+.se-row:hover{border-color:#7C5CE0;transform:translateX(2px)}
+.se-row b{color:var(--paper)}
+.se-row .v34-dim{font-size:11px}
+.tr-row:hover{background:rgba(124,92,224,.06)}
+
+</style>
+<script id="v54Script">
+(function(){
+  if(window.__V54)return; window.__V54=1;
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function session(){return get('gp-session',{})||{};}
+  function isAdmin(){return (session().role||'')==='Admin';}
+  function initials(n){return String(n||'?').trim().split(/\s+/).slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();}
+  function creds(){return get('gp-credentials',[])||[];}
+
+  /* ═══ profiles: {username:{name,role,branch,phone,email,title,pic}} ═══ */
+  var PK='gp-profiles';
+  function profs(){return get(PK,{});}
+  function profOf(u){return profs()[u]||{};}
+  function myU(){return session().u||'admin';}
+  function myProf(){var s=session();return Object.assign({name:s.name,role:s.role,branch:s.branch},profOf(myU()));}
+
+  /* resize any uploaded image to a 240px square jpeg data-URI */
+  function readPic(file,cb){
+    if(!file){cb('');return;}
+    var r=new FileReader();
+    r.onload=function(){var img=new Image();img.onload=function(){
+      var S=240,side=Math.min(img.width,img.height),c=document.createElement('canvas');c.width=S;c.height=S;
+      c.getContext('2d').drawImage(img,(img.width-side)/2,(img.height-side)/2,side,side,0,0,S,S);
+      cb(c.toDataURL('image/jpeg',.82));
+    };img.src=r.result;};
+    r.readAsDataURL(file);
+  }
+  window.__v54pic='';
+
+  /* paint the picture onto every avatar for the logged-in user */
+  function paintAvatars(){
+    var p=myProf();
+    var bg=p.pic?'background-image:url('+p.pic+');background-size:cover;background-position:center;color:transparent':'';
+    document.querySelectorAll('.pv-bigav').forEach(function(el){el.setAttribute('style',(el.getAttribute('style')||'')+';'+bg);});
+    /* sidebar avatar (first square in side-foot) */
+    var foot=document.querySelector('.side-foot');
+    if(foot){var av=foot.querySelector('.profile-av,.cred-av,.sf-av')||foot.firstElementChild;
+      if(av&&av.tagName!=='BUTTON'&&p.pic){av.style.backgroundImage='url('+p.pic+')';av.style.backgroundSize='cover';av.style.backgroundPosition='center';av.style.color='transparent';}}
+  }
+
+  /* ═══ Edit Profile modal (admin only) ═══ */
+  var BRANCHES18=['HQ · Kochi','Medcity Kannur','Medcity Kozhikode','Medcity Kochi','Medcity Thrissur','Medcity Muvattupuzha','Medcity Kothamangalam','Medcity Kottayam','Medcity Kanjikuzhi','Medcity Pala','Medcity Pala 2','Medcity Thodupuzha','Medcity Kattappana','Medcity Trivandrum','Medcity Kollam','Medcity Mavelikkara','Medcity Thiruvalla KSRTC Branch','Medcity Thiruvalla Chandrima Branch','Medcity Mangalore'];
+  window.pfOpen=function(u){
+    if(!isAdmin()){toastX('Only an admin can edit profiles - ask your admin to update your photo & details');return;}
+    ensure();
+    var C=creds();
+    var target=(typeof u==='string'&&u)?u:myU();
+    renderEdit(target);
+    document.getElementById('pfBg').classList.add('on');document.getElementById('pfM').classList.add('on');
+  };
+  window.pfClose=function(){var b=document.getElementById('pfBg'),m=document.getElementById('pfM');if(b)b.classList.remove('on');if(m)m.classList.remove('on');window.__v54pic='';};
+  function ensure(){
+    if(document.getElementById('pfBg'))return;
+    document.body.insertAdjacentHTML('beforeend','<div class="docm-bg" id="pfBg" onclick="pfClose()"></div><div class="docm" id="pfM" style="width:min(520px,95vw)"></div>');
+  }
+  window.pfPick=function(u){window.__v54pic='';renderEdit(u);};
+  window.pfUpload=function(inp){readPic(inp.files[0],function(d){window.__v54pic=d;var pv=document.getElementById('pfPreview');if(pv&&d){pv.style.backgroundImage='url('+d+')';pv.style.color='transparent';pv.textContent='';}});};
+  function renderEdit(u){
+    var m=document.getElementById('pfM'); if(!m)return;
+    var C=creds();
+    var cred=C.find(function(x){return x.u===u;})||{u:u,name:'',role:'Counsellor',branch:''};
+    var p=Object.assign({name:cred.name,role:cred.role,branch:cred.branch},profOf(u));
+    var pic=window.__v54pic||p.pic||'';
+    var roles=['Admin','Manager','Branch Head','Team Lead','Counsellor','Consultant','Faculty','Documentation Executive','Finance Officer'];
+    m.innerHTML='<div class="docm-h"><div><h2>Edit profile</h2><div class="sub">Admin can set anyone\'s photo, name and details</div></div><button class="docm-x" onclick="pfClose()">✕</button></div>'+
+      '<div style="padding:18px 22px;display:flex;flex-direction:column;gap:12px">'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="v34-dim" style="font-size:11px">Whose profile:</span>'+
+          '<select class="v34-in" onchange="pfPick(this.value)">'+C.map(function(c){return '<option value="'+esc(c.u)+'"'+(c.u===u?' selected':'')+'>'+esc(c.name)+' ('+esc(c.role)+')</option>';}).join('')+'</select></div>'+
+        '<div style="display:flex;gap:16px;align-items:center">'+
+          '<div class="pf-preview" id="pfPreview" style="'+(pic?'background-image:url('+pic+');color:transparent':'')+'">'+(pic?'':esc(initials(p.name)))+'</div>'+
+          '<div><label class="v34-btn gold" style="cursor:pointer;display:inline-block">Upload photo<input type="file" accept="image/*" style="display:none" onchange="pfUpload(this)"></label>'+
+          '<div class="v34-dim" style="font-size:10.5px;margin-top:5px">JPG/PNG, auto-cropped to a square</div></div></div>'+
+        '<label class="nd-f">Full name<input class="v34-in" id="pfName" value="'+esc(p.name||'')+'"></label>'+
+        '<div class="nd-grid"><label class="nd-f">Role<select class="v34-in" id="pfRole">'+roles.map(function(r){return '<option'+(p.role===r?' selected':'')+'>'+r+'</option>';}).join('')+'</select></label>'+
+          '<label class="nd-f">Branch (master list)<select class="v34-in" id="pfBranch">'+BRANCHES18.map(function(b){return '<option'+(p.branch===b?' selected':'')+'>'+esc(b)+'</option>';}).join('')+(BRANCHES18.indexOf(p.branch)<0&&p.branch?'<option selected>'+esc(p.branch)+'</option>':'')+'</select></label>'+
+          '<label class="nd-f">Phone<input class="v34-in" id="pfPhone" value="'+esc(p.phone||'')+'"></label>'+
+          '<label class="nd-f">Email<input class="v34-in" id="pfEmail" value="'+esc(p.email||'')+'"></label></div>'+
+        '<label class="nd-f">Title / designation<input class="v34-in" id="pfTitle" value="'+esc(p.title||'')+'" placeholder="e.g. Senior Overseas Counsellor"></label>'+
+        '<button class="v34-btn gold" onclick="pfSave(\''+esc(u)+'\')">Save profile</button>'+
+      '</div>';
+  }
+  window.pfSave=function(u){
+    var P=profs();
+    P[u]=Object.assign({},P[u],{
+      name:(document.getElementById('pfName')||{}).value||'',
+      role:(document.getElementById('pfRole')||{}).value||'',
+      branch:(document.getElementById('pfBranch')||{}).value||'',
+      phone:(document.getElementById('pfPhone')||{}).value||'',
+      email:(document.getElementById('pfEmail')||{}).value||'',
+      title:(document.getElementById('pfTitle')||{}).value||''
+    });
+    if(window.__v54pic)P[u].pic=window.__v54pic;
+    set(PK,P);
+    /* keep the credential name in sync */
+    var C=creds(), c=C.find(function(x){return x.u===u;}); if(c){c.name=P[u].name||c.name;set('gp-credentials',C);}
+    /* if editing myself, update the live session name */
+    if(u===myU()){var s=session();s.name=P[u].name||s.name;set('gp-session',s);}
+    window.__v54pic='';
+    pfClose(); paintAvatars();
+    try{var nav=document.querySelector('.nav-btn[data-page=pv2]');if(document.getElementById('page-pv2').classList.contains('on'))go('pv2',nav);}catch(e){}
+    toastX('Profile saved for '+(P[u].name||u));
+  };
+
+  /* wire the "Edit Profile" button on the dashboard + repaint on open */
+  function wirePv2(){
+    var _go=window.go;
+    if(typeof _go==='function'&&!window.__v54Go){window.__v54Go=1;window.go=function(p,btn){_go(p,btn);
+      if(p==='pv2'){setTimeout(function(){
+        var b=document.querySelector('#page-pv2 .pv-lime');
+        if(b){b.setAttribute('onclick','pfOpen()'); b.textContent=isAdmin()?'Edit Profile':'My details';}
+        /* show title under name if set */
+        var p2=myProf(),pg=document.getElementById('page-pv2');
+        var sub=pg&&pg.querySelector('.pv-profile .pv-ks'); if(sub&&p2.title)sub.textContent=p2.title;
+        paintAvatars();
+      },260);}
+    };}
+  }
+
+  /* ═══ Student explorer: select any student in Digital Twin & Applications ═══ */
+  window.seSearch=function(q){
+    q=(q||'').toLowerCase();var box=document.getElementById('seResults');if(!box)return;
+    if(q.length<2){box.innerHTML='<span class="v34-dim" style="font-size:12px">Type at least 2 letters to find a student…</span>';return;}
+    var res=(window.__DB_MASTER||[]).filter(function(l){return (l.name+' '+l.id+' '+(l.course||'')+' '+(l.branch||'')).toLowerCase().indexOf(q)>=0;}).slice(0,12);
+    box.innerHTML=res.map(function(l){return '<div class="se-row" onclick="seOpen(\''+esc(l.id)+'\')"><b>'+esc(l.name)+'</b><span class="v34-dim">'+esc(l.id)+' · '+esc(l.course||'')+' · '+esc(l.branch||'')+' · '+esc(l.vertical)+'</span></div>';}).join('')||'<span class="v34-dim" style="font-size:12px">No student matches.</span>';
+  };
+  window.seOpen=function(id){
+    var l=(window.__DB_MASTER||[]).find(function(x){return x.id===id;});if(!l)return;
+    try{ if(l.vertical==='Academy'&&window.alLead)return alLead(id); if(window.saLead)return saLead(id); if(window.alLead)return alLead(id);}catch(e){}
+    toastX('Opening '+l.name);
+  };
+  function explorer(){
+    return '<div class="qc-card se-card"><h4 class="v34-sh" style="margin-top:0">Look up any student</h4>'+
+      '<p class="v34-sub" style="margin-bottom:8px">Search across all '+((window.__DB_MASTER||[]).length)+' students and open the full profile.</p>'+
+      '<input class="v34-in" id="seQ" placeholder="Search by name, ID, course or branch" oninput="seSearch(this.value)" style="width:100%">'+
+      '<div id="seResults" class="se-results"><span class="v34-dim" style="font-size:12px">Type at least 2 letters to find a student…</span></div></div>';
+  }
+  function injectExplorer(pid){
+    var pg=document.getElementById(pid); if(!pg||pg.querySelector('.se-card'))return;
+    pg.insertAdjacentHTML('afterbegin',explorer());
+  }
+
+  /* ═══ editable Travel Readiness on the Visa page ═══ */
+  var RK='gp-visa-readiness';
+  var RITEMS=['Flight booked','Accommodation confirmed','Forex card loaded','SIM + insurance','Pre-departure briefing','Documents pack ready'];
+  window.trToggle=function(stu,i){
+    var R=get(RK,{}),k=stu; R[k]=R[k]||{};
+    var cur=R[k][i]||(i<2?'DONE':'PENDING'); R[k][i]=cur==='DONE'?'PENDING':'DONE'; set(RK,R);
+    try{renderVisa();}catch(e){}
+  };
+  function wrapVisa(){
+    if(window.__v54Visa||typeof window.renderVisa!=='function')return;
+    window.__v54Visa=1;
+    var _rv=window.renderVisa;
+    window.renderVisa=function(){
+      _rv();
+      try{
+        var side=document.getElementById('visaSide');
+        if(side&&/Travel Readiness/.test(side.innerHTML)){
+          var stu=(side.querySelector('h3')||{}).textContent.replace('Travel Readiness','').replace(/[—-].*/,'').trim()||'student';
+          var R=get(RK,{})[stu]||{};
+          side.innerHTML='<h3>Travel Readiness — '+esc(stu)+'<span class="tag">editable · click to update</span></h3>'+
+            RITEMS.map(function(t,i){var st=R[i]||(i<2?'DONE':'PENDING');return '<div class="doc-row tr-row" onclick="trToggle(\''+esc(stu)+'\','+i+')" style="cursor:pointer">'+esc(t)+'<span class="badge '+(st==='DONE'?'b-ok':'b-warn')+'">'+st+'</span></div>';}).join('')+
+            '<div class="ai-msg" style="margin-top:12px"><b>Editable:</b> click any row to flip it between DONE and PENDING. Saved per student.</div>';
+        }
+      }catch(e){}
+    };
+  }
+
+  function boot(){
+    wirePv2(); wrapVisa();
+    /* explorer on nav to twin/apps */
+    var _go=window.go;
+    if(typeof _go==='function'&&!window.__v54Exp){window.__v54Exp=1;window.go=function(p,btn){_go(p,btn);
+      if(p==='twin')setTimeout(function(){injectExplorer('page-twin');},120);
+      if(p==='apps')setTimeout(function(){injectExplorer('page-apps');},120);
+    };}
+    setTimeout(paintAvatars,400);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,2000); setTimeout(paintAvatars,2600);
+})();
+
+</script>
+
+<style id="v59Style">
+/* ═══ V59 — access control UI + contrast fixes ═══ */
+
+/* contrast: dark tiles that had near-black text */
+.f-bar{color:#fff!important;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.lb-av{color:#fff!important}
+body.light .funnel .f-bar,body.light .f-bar{color:#fff!important}
+/* generic guard: elements with an inline dark gradient keep light text */
+[style*="linear-gradient(120deg,#3"] b,[style*="linear-gradient(120deg,#3"] small,
+[style*="linear-gradient(135deg,#7C5CE0"] b,[style*="linear-gradient(120deg,#6A4BD4"] b{color:#fff!important}
+
+/* module access grid */
+.ac-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;max-height:360px;overflow-y:auto;padding:2px}
+.ac-mod{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--paper);background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;cursor:pointer}
+.ac-mod.on{border-color:#7C5CE0;background:rgba(124,92,224,.08)}
+.ac-mod.locked{opacity:.7;cursor:default}
+.ac-mod input{accent-color:#7C5CE0}
+
+</style>
+<script id="v59Script">
+(function(){
+  if(window.__V59)return; window.__V59=1;
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function session(){return get('gp-session',{})||{};}
+  function isAdmin(){return (session().role||'')==='Admin';}
+  function creds(){return get('gp-credentials',[])||[];}
+  function today(){return new Date().toISOString().slice(0,10);}
+  function fmtDur(sec){sec=Math.round(sec||0);if(sec<60)return sec+'s';var m=Math.floor(sec/60);if(m<60)return m+'m '+(sec%60)+'s';var h=Math.floor(m/60);return h+'h '+(m%60)+'m';}
+
+  /* ═══ 1. Idle watchdog → record away time (admin-visible) ═══ */
+  var MK_AWAY='gp-away-log', awayStart=0;
+  function recordAway(sec){
+    var s=session(); if(!s.u||sec<3)return;
+    var log=get(MK_AWAY,{}); log[s.u]=log[s.u]||{name:s.name,role:s.role,days:{},sessions:[]};
+    log[s.u].name=s.name; log[s.u].role=s.role;
+    log[s.u].days[today()]=(log[s.u].days[today()]||0)+sec;
+    log[s.u].sessions.push({date:today(),at:new Date().toTimeString().slice(0,5),sec:sec});
+    if(log[s.u].sessions.length>60)log[s.u].sessions=log[s.u].sessions.slice(-60);
+    set(MK_AWAY,log);
+  }
+  function watchIdle(){
+    var bg=document.getElementById('idleBg'); if(!bg||bg.__v59)return; bg.__v59=1;
+    new MutationObserver(function(){
+      if(bg.classList.contains('on')){ if(!awayStart)awayStart=Date.now(); }
+      else if(awayStart){ var thr=Math.round(((window.__idleCfg&&window.__idleCfg.ms)||20000)/1000); recordAway(Math.round((Date.now()-awayStart)/1000)+thr); awayStart=0; }
+    }).observe(bg,{attributes:true,attributeFilter:['class']});
+  }
+
+  /* ═══ 2. Module (folder) access control ═══ */
+  var MK_ACC='gp-module-access'; /* {username:{mode:'all'|'custom',pages:{key:true}}} */
+  var ALWAYS=['pv2','dash','settings']; /* never lock out of landing + own settings */
+  function accAll(){return get(MK_ACC,{});}
+  function myAcc(){return accAll()[session().u]||{mode:'all'};}
+  function enforce(){
+    if(isAdmin())return; /* admin always sees everything */
+    var a=myAcc(); if(a.mode!=='custom')return;
+    document.querySelectorAll('.nav-btn[data-page]').forEach(function(b){
+      var pg=b.dataset.page; if(ALWAYS.indexOf(pg)>=0)return;
+      if(!(a.pages&&a.pages[pg]))b.style.display='none';
+    });
+  }
+  function modules(){var m=[],seen={};document.querySelectorAll('.nav-btn[data-page]').forEach(function(b){var k=b.dataset.page;if(seen[k])return;seen[k]=1;m.push({k:k,label:b.textContent.trim()});});return m;}
+
+  /* ═══ Admin page: Access Control + Away-time report ═══ */
+  var accSel=null;
+  function renderAccess(){
+    var pg=document.getElementById('page-access'); if(!pg)return;
+    if(!isAdmin()){pg.innerHTML='<div class="v34-head"><div><div class="v34-eyebrow">Restricted</div><p class="v34-sub">This backend page is admin-only.</p></div></div>';return;}
+    var C=creds(), mods=modules(), acc=accAll();
+    if(!accSel&&C[0])accSel=C.find(function(c){return c.role!=='Admin';})?C.find(function(c){return c.role!=='Admin';}).u:C[0].u;
+    var ua=acc[accSel]||{mode:'all',pages:{}};
+    var away=get(MK_AWAY,{});
+    var awayRows=Object.keys(away).map(function(u){var d=away[u];var todayS=(d.days&&d.days[today()])||0;var total=Object.keys(d.days||{}).reduce(function(a,k){return a+d.days[k];},0);
+      return {u:u,name:d.name,role:d.role,today:todayS,total:total,last:(d.sessions&&d.sessions.length)?d.sessions[d.sessions.length-1]:null};}).sort(function(a,b){return b.today-a.today;});
+    pg.innerHTML=
+      '<div class="v34-head"><div><div class="v34-eyebrow">Admin backend · access &amp; presence</div>'+
+      '<p class="v34-sub">Customise which folders each person can open, and see how long staff were away (idle) - recorded by the watchdog.</p></div></div>'+
+      '<div class="sa-2col">'+
+        /* module access */
+        '<div class="qc-card"><h4 class="v34-sh" style="margin-top:0">Folder / module access</h4>'+
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><span class="v34-dim" style="font-size:11px">User:</span>'+
+            '<select class="v34-in" onchange="acPick(this.value)">'+C.map(function(c){return '<option value="'+esc(c.u)+'"'+(c.u===accSel?' selected':'')+'>'+esc(c.name)+' ('+esc(c.role)+')</option>';}).join('')+'</select>'+
+            '<label class="v34-ck"><input type="radio" name="acmode" '+(ua.mode!=='custom'?'checked':'')+' onclick="acMode(\'all\')"> Full access</label>'+
+            '<label class="v34-ck"><input type="radio" name="acmode" '+(ua.mode==='custom'?'checked':'')+' onclick="acMode(\'custom\')"> Custom</label></div>'+
+          (session().u===accSel||(C.find(function(c){return c.u===accSel;})||{}).role==='Admin'?'<p class="v34-sub" style="color:var(--gold)">Admins always have full access - restrictions apply to other roles.</p>':'')+
+          '<div class="ac-grid">'+mods.map(function(m){var on=ua.mode!=='custom'||ALWAYS.indexOf(m.k)>=0||(ua.pages&&ua.pages[m.k]);var locked=ALWAYS.indexOf(m.k)>=0;
+            return '<label class="ac-mod'+(on?' on':'')+(locked?' locked':'')+'"><input type="checkbox" '+(on?'checked':'')+(locked||ua.mode!=='custom'?' disabled':'')+' onchange="acTog(\''+esc(m.k)+'\',this.checked)"> '+esc(m.label)+(locked?' <span class="v34-dim" style="font-size:9px">always</span>':'')+'</label>';
+          }).join('')+'</div>'+
+          '<button class="v34-btn gold" style="margin-top:10px" onclick="acSave()">Save access for this user</button></div>'+
+        /* away-time report */
+        '<div class="qc-card"><h4 class="v34-sh" style="margin-top:0">Presence / away-time (watchdog)</h4>'+
+          '<p class="v34-sub" style="margin-bottom:10px">Total idle/away time recorded per person. The watchdog logs the gap every time someone steps away and resumes.</p>'+
+          '<div class="v34-tblwrap"><table class="v34-tbl"><thead><tr><th>Member</th><th>Away today</th><th>Away total</th><th>Last seen away</th></tr></thead><tbody>'+
+          (awayRows.length?awayRows.map(function(r){return '<tr><td><b>'+esc(r.name||r.u)+'</b><br><span class="v34-dim" style="font-size:11px">'+esc(r.role||'')+'</span></td><td><span class="'+(r.today>1800?'sa-miss hi':r.today>300?'sa-miss':'sa-miss ok')+'">'+fmtDur(r.today)+'</span></td><td>'+fmtDur(r.total)+'</td><td class="v34-dim">'+(r.last?esc(r.last.date)+' '+esc(r.last.at)+' · '+fmtDur(r.last.sec):'—')+'</td></tr>';}).join('')
+            :'<tr><td colspan="4" class="v34-dim" style="padding:12px">No away-time recorded yet. It appears once the idle watchdog fires (Settings → idle timeout) and someone resumes.</td></tr>')+
+          '</tbody></table></div></div>'+
+      '</div>';
+  }
+  window.renderAccess=renderAccess;
+  window.acPick=function(u){accSel=u;renderAccess();};
+  window.acMode=function(m){var acc=accAll();acc[accSel]=acc[accSel]||{pages:{}};acc[accSel].mode=m;set(MK_ACC,acc);renderAccess();};
+  window.acTog=function(k,on){var acc=accAll();acc[accSel]=acc[accSel]||{mode:'custom',pages:{}};acc[accSel].pages=acc[accSel].pages||{};if(on)acc[accSel].pages[k]=1;else delete acc[accSel].pages[k];set(MK_ACC,acc);};
+  window.acSave=function(){toastX('Access saved for '+((creds().find(function(c){return c.u===accSel;})||{}).name||accSel)+' - applies on their next login');renderAccess();};
+
+  /* ═══ 3. credentials backend → edit any profile + photo ═══ */
+  function wireCredentials(){
+    var pg=document.getElementById('page-credentials'); if(!pg||pg.querySelector('.pf-backend'))return;
+    pg.insertAdjacentHTML('afterbegin','<div class="pf-backend qc-card" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b style="font-size:13px">Profiles &amp; photos</b><div class="v34-dim" style="font-size:12px">Set the profile picture, name, branch and details for any staff member or faculty.</div></div><button class="v34-btn gold" onclick="pfOpen()">Edit profiles &amp; photos →</button></div>');
+  }
+
+  /* ═══ inject the admin Access Control nav page ═══ */
+  function boot(){
+    watchIdle();
+    var content=document.querySelector('.content'), side=document.querySelector('.side');
+    if(content&&!document.getElementById('page-access')){var d=document.createElement('div');d.className='page';d.id='page-access';content.appendChild(d);}
+    try{ if(typeof titles!=='undefined')titles.access=['Access &amp; Presence','folders per user · away-time']; }catch(e){}
+    if(side&&isAdmin()&&!document.querySelector('.nav-btn[data-page=access]')){
+      var credNav=document.querySelector('.nav-btn[data-page=credentials]');
+      var b=document.createElement('button');b.className='nav-btn';b.dataset.page='access';b.setAttribute('onclick',"go('access',this)");
+      b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Access &amp; Presence';
+      if(credNav&&credNav.parentNode)credNav.parentNode.insertBefore(b,credNav.nextSibling); else side.appendChild(b);
+    }
+    var _go=window.go;
+    if(typeof _go==='function'&&!window.__v59Go){window.__v59Go=1;window.go=function(p,btn){_go(p,btn);
+      if(p==='access')setTimeout(renderAccess,60);
+      if(p==='credentials')setTimeout(wireCredentials,80);
+      setTimeout(enforce,40);
+    };}
+    if(!window.__v59Sv){window.__v59Sv=1;var _sv=window.setVertical;window.setVertical=function(v){if(_sv)_sv(v);setTimeout(enforce,120);};}
+    setTimeout(enforce,300); setTimeout(enforce,1200);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,2100); setTimeout(watchIdle,1000);
 })();
 
 </script>
