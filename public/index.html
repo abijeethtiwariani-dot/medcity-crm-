@@ -7119,7 +7119,7 @@ function go(p,btn){
   document.querySelectorAll('.nav-btn[data-page]').forEach(x=>x.classList.remove('on'));
   if(btn)btn.classList.add('on');
   document.getElementById('crumb').innerHTML=titles[p][0]+'<em>'+titles[p][1]+'</em>';
-  if(p==='student')setTimeout(()=>{document.getElementById('readyRing').style.strokeDashoffset=201-201*.84},80);
+  if(p==='student')setTimeout(()=>{var rr=document.getElementById('readyRing');if(rr)rr.style.strokeDashoffset=201-201*.84},80);
 }
 
 /* ─── Toast ─── */
@@ -10418,7 +10418,7 @@ details.n8-det summary{cursor:pointer;font-size:12px;color:var(--jet);margin-top
   var callTimer=null,callSecs=0,callRec=null;
   function initials(n){return n.split(' ').map(function(w){return w[0]}).slice(0,2).join('').toUpperCase();}
   window.nxCall=function(i){
-    callRec=DB[i];callSecs=0;
+    callRec=DB[i]||DB[Math.floor(Math.random()*DB.length)];if(!callRec){toast&&toast('No leads in this view to call');return;}callSecs=0;
     callBg.classList.add('on');
     var c=document.getElementById('callCard');
     c.innerHTML='<div class="call-nx">Nextiva · outbound</div>'+
@@ -13596,7 +13596,7 @@ body:not(.light):not(.maroon) [style*="#5A6C8C"]{color:var(--mist)!important}
   var BRANCH_CLUSTERS=[
     {region:'North Kerala', branches:[{name:'Medcity Kannur',location:'Kannur'},{name:'Medcity Kozhikode',location:'Kozhikode'}]},
     {region:'Central Kerala', branches:[{name:'Medcity Kochi',location:'Kochi'},{name:'Medcity Thrissur',location:'Thrissur'},{name:'Medcity Muvattupuzha',location:'Ernakulam District'},{name:'Medcity Kothamangalam',location:'Ernakulam District'},{name:'Medcity Kottayam',location:'Kottayam'},{name:'Medcity Kanjikuzhi',location:'Kottayam'},{name:'Medcity Pala',location:'Pala'},{name:'Medcity Pala 2',location:'Pala'},{name:'Medcity Thodupuzha',location:'Idukki District'},{name:'Medcity Kattappana',location:'Idukki District'}]},
-    {region:'South Kerala', branches:[{name:'Medcity Trivandrum',location:'Thiruvananthapuram'},{name:'Medcity Kollam',location:'Kollam'},{name:'Medcity Mavelikkara',location:'Alappuzha District'},{name:'Medcity Thiruvalla KSRTC Branch',location:'Pathanamthitta'},{name:'Medcity Thiruvalla Chandrima Branch',location:'Pathanamthitta'}]},
+    {region:'South Kerala', branches:[{name:'Medcity Trivandrum',location:'Thiruvananthapuram'},{name:'Medcity Kollam',location:'Kollam'},{name:'Medcity Mavelikkara',location:'Alappuzha District'},{name:'Medcity Thiruvalla KSRTC',location:'Pathanamthitta'},{name:'Medcity Thiruvalla Chandrima',location:'Pathanamthitta'}]},
     {region:'Karnataka', branches:[{name:'Medcity Mangalore',location:'Karnataka'}]}
   ];
   var QC_PARAMS=[['greeting','Greeting & Rapport',10],['knowledge','Course & Fee Knowledge',20],['pitch','Sales Pitch Quality',20],['objection','Objection Handling',20],['compliance','Process Compliance',10],['closing','Closing & Next Step',20]];
@@ -16919,7 +16919,6 @@ body.light #docDashCard{background:linear-gradient(120deg,rgba(244,241,251,.6),r
     /* explorer on nav to twin/apps */
     var _go=window.go;
     if(typeof _go==='function'&&!window.__v54Exp){window.__v54Exp=1;window.go=function(p,btn){_go(p,btn);
-      if(p==='twin')setTimeout(function(){injectExplorer('page-twin');},120);
       if(p==='apps')setTimeout(function(){injectExplorer('page-apps');},120);
     };}
     setTimeout(paintAvatars,400);
@@ -17509,7 +17508,7 @@ body.light .funnel .f-bar,body.light .f-bar{color:#fff!important}
       lset('gp-credentials',merged);
       var gate=document.getElementById('authGate');
       var onGate=gate&&gate.classList.contains('on');
-      if(initial||onGate){ location.reload(); }
+      if(onGate){ location.reload(); }
       else { toastX('Staff accounts synced from another device'); }
     }
   }
@@ -18179,6 +18178,91 @@ body.light .funnel .f-bar,body.light .f-bar{color:#fff!important}
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
   setTimeout(boot,1400);setTimeout(boot,2800);
+})();
+
+</script>
+
+<style id="v69Style">
+/* V69 — boot veil + page-transition polish */
+#bootVeil{position:fixed;inset:0;z-index:99998;display:grid;place-items:center;background:linear-gradient(135deg,#ECE9F4 0%,#F4F1FB 55%,#FBE9F0 100%);transition:opacity .45s ease}
+#bootVeil.gone{opacity:0;pointer-events:none}
+#bootVeil .bv-in{display:flex;flex-direction:column;align-items:center;gap:16px}
+#bootVeil .bv-logo{font:800 26px/1 var(--font-d,'Poppins',sans-serif);letter-spacing:4px;color:#211D35}
+#bootVeil .bv-logo em{font-style:normal;color:#7C5CE0}
+#bootVeil .bv-spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(124,92,224,.18);border-top-color:#7C5CE0;animation:bvSpin .8s linear infinite}
+#bootVeil .bv-txt{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#8A82A6;animation:bvPulse 1.4s ease-in-out infinite}
+@keyframes bvSpin{to{transform:rotate(360deg)}}
+@keyframes bvPulse{0%,100%{opacity:.5}50%{opacity:1}}
+/* smoother page entrance on navigation */
+.content .page.on{animation:v69In .32s cubic-bezier(.22,.61,.36,1)}
+@keyframes v69In{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+/* subtle lift on nav + cards for a more premium feel */
+.nav-btn{transition:background .16s ease,color .16s ease,transform .12s ease}
+.nav-btn:active{transform:translateX(1px) scale(.99)}
+
+</style>
+<script id="v69Script">
+(function(){
+  if(window.__V69)return; window.__V69=1;
+  /* ═══ V69 — kill the initial "double screen" flash + boot polish.
+     The app's default visible page is #page-dash (Overview) but it lands on
+     #page-pv2 (Dashboard) up to ~2s later, so users saw the Overview flash
+     first. Fix: a boot veil (below the auth gate) covers the transition and
+     fades once the real landing page is shown; we also land instantly. ═══ */
+  function session(){try{var v=localStorage.getItem('gp-session');return v?JSON.parse(v):null;}catch(e){return null;}}
+  function isAdmin(){var s=session();return s&&s.role==='Admin';}
+  function gateOn(){var g=document.getElementById('authGate');return g&&g.classList.contains('on');}
+
+  /* admin nav buttons (Access & Presence / Student Portal) are injected by V59/V67
+     only on boot timers that fire BEFORE a slow login — re-ensure them post-login */
+  function fixAdminNav(){
+    if(!isAdmin())return;
+    var side=document.querySelector('.side'); if(!side)return;
+    function ensure(page,html,afterPage){
+      if(document.querySelector('.nav-btn[data-page='+page+']'))return;
+      var b=document.createElement('button');b.className='nav-btn';b.dataset.page=page;b.setAttribute('onclick',"go('"+page+"',this)");
+      b.innerHTML=html;
+      var ref=document.querySelector('.nav-btn[data-page='+afterPage+']')||document.querySelector('.nav-btn[data-page=credentials]');
+      if(ref&&ref.parentNode)ref.parentNode.insertBefore(b,ref.nextSibling);
+      else if(side.querySelector('.side-foot'))side.insertBefore(b,side.querySelector('.side-foot'));
+      else side.appendChild(b);
+    }
+    ensure('access','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Access &amp; Presence','credentials');
+    ensure('studentportal','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M7 10v5c0 1 2.5 3 5 3s5-2 5-3v-5"/></svg>Student Portal','access');
+  }
+  window.__fixAdminNav=fixAdminNav;
+  function landed(){var pv=document.getElementById('page-pv2'),mp=document.getElementById('page-myportal');return (pv&&pv.classList.contains('on'))||(mp&&mp.classList.contains('on'));}
+
+  function veil(){
+    if(document.getElementById('bootVeil'))return;
+    var d=document.createElement('div');d.id='bootVeil';
+    d.innerHTML='<div class="bv-in"><div class="bv-logo">MED<em>CITY</em></div><div class="bv-spin"></div><div class="bv-txt">Preparing your workspace</div></div>';
+    document.body.appendChild(d);
+  }
+  var gone=false;
+  function hide(){ if(gone)return; gone=true; var v=document.getElementById('bootVeil'); if(v){v.classList.add('gone'); setTimeout(function(){if(v.parentNode)v.parentNode.removeChild(v);},480);} }
+
+  /* land the profile dashboard immediately after sign-in (non-students) */
+  function fastLand(){
+    var s=session(); if(!s)return;
+    if(s.role==='Student'){ if(typeof window.renderMyPortal==='function')try{window.renderMyPortal();}catch(e){} return; }
+    var nav=document.querySelector('.nav-btn[data-page=pv2]');
+    if(nav&&typeof window.go==='function'&&!landed())try{window.go('pv2',nav);}catch(e){}
+  }
+
+  function run(){
+    veil();
+    var t=Date.now(), landRequested=false;
+    var iv=setInterval(function(){
+      if(gateOn()){ t=Date.now(); return; }          /* at the login gate: keep veil behind it, hold the timer */
+      if(!landRequested){ landRequested=true; fastLand(); setTimeout(fastLand,120); fixAdminNav(); setTimeout(fixAdminNav,400); setTimeout(fixAdminNav,1200); }
+      if(landed()){ hide(); clearInterval(iv); return; }
+      if(Date.now()-t>3000){ hide(); clearInterval(iv); }  /* failsafe: 3s after the gate is gone */
+    },80);
+    /* absolute safety net */
+    setTimeout(hide,7000);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();
 })();
 
 </script>
