@@ -17113,5 +17113,138 @@ body.light .funnel .f-bar,body.light .f-bar{color:#fff!important}
   var _sw=window.mcSwitch; if(typeof _sw==='function'){window.mcSwitch=function(v){_sw(v);setTimeout(apply,80);};}
 })();
 </script>
+
+<style id="v61Style">
+/* V61 — per-role access */
+.ra-tag{font-size:10px;font-weight:600;color:#7C5CE0;background:rgba(124,92,224,.1);border:1px solid rgba(124,92,224,.25);border-radius:20px;padding:2px 9px;margin-left:8px;vertical-align:middle}
+.ra-badge{font-size:10px;font-weight:600;border-radius:20px;padding:3px 9px;display:inline-block}
+.ra-badge.cust{color:#7C5CE0;background:rgba(124,92,224,.1);border:1px solid rgba(124,92,224,.25)}
+.ra-badge.full{color:#2E9B96;background:rgba(46,155,150,.1);border:1px solid rgba(46,155,150,.25)}
+.ra-card .v34-tbl td{vertical-align:middle}
+
+</style>
+<script id="v61Script">
+(function(){
+  if(window.__V61)return; window.__V61=1;
+  /* ═══ V61 — per-ROLE module access (grant a whole role at once).
+     Layers UNDER V59's per-user overrides: a personal entry (gp-module-access)
+     always wins; otherwise the user inherits their role policy (gp-role-access);
+     otherwise full access. Admins always see everything. Hide-only + vertical-safe. ═══ */
+  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function session(){return get('gp-session',{})||{};}
+  function isAdmin(){return (session().role||'')==='Admin';}
+  function creds(){return get('gp-credentials',[])||[];}
+
+  var MK_USER='gp-module-access', MK_ROLE='gp-role-access';
+  var ALWAYS=['pv2','dash','settings']; /* landing + own settings never locked */
+  function userAll(){return get(MK_USER,{})||{};}
+  function roleAll(){return get(MK_ROLE,{})||{};}
+
+  function modules(){var m=[],seen={};document.querySelectorAll('.nav-btn[data-page]').forEach(function(b){var k=b.dataset.page;if(seen[k])return;seen[k]=1;m.push({k:k,label:(b.textContent||'').trim()||k});});return m;}
+  function roleList(){
+    var s={}; creds().forEach(function(c){if(c.role&&c.role!=='Admin'&&c.role!=='Student')s[c.role]=1;});
+    ['Branch Head','Manager','Counsellor','Senior Counsellor','Consultant','Faculty','Front Office','Team Lead','Lead Manager','Documentation Executive','Finance Officer','Operations'].forEach(function(r){s[r]=1;});
+    return Object.keys(s).sort();
+  }
+  /* effective access for a user: personal override wins, else role policy, else all */
+  function effective(user,role){
+    var u=userAll()[user]; if(u&&u.mode)return u;
+    var r=roleAll()[role]; if(r&&r.mode)return r;
+    return {mode:'all'};
+  }
+  window.__effAccess=effective;
+
+  /* hide-only enforcement (never un-hides → won't fight the vertical nav filter) */
+  function enforceRole(){
+    if(isAdmin())return;
+    var s=session(); var a=effective(s.u,s.role);
+    if(a.mode!=='custom')return;
+    document.querySelectorAll('.nav-btn[data-page]').forEach(function(b){
+      var pg=b.dataset.page; if(ALWAYS.indexOf(pg)>=0)return;
+      if(!(a.pages&&a.pages[pg]))b.style.display='none';
+    });
+  }
+  window.__enforceRole=enforceRole;
+
+  /* ═══ Admin UI — appended to #page-access under V59's per-user card ═══ */
+  var raSel=null;
+  function usersOnRole(role){return creds().filter(function(c){return c.role===role;});}
+  function overriddenUsers(){var u=userAll();return Object.keys(u).filter(function(k){return u[k]&&u[k].mode;}).map(function(k){var c=creds().find(function(x){return x.u===k;})||{};return {u:k,name:c.name||k,role:c.role||'—',mode:u[k].mode};});}
+
+  function roleCardHTML(){
+    var roles=roleList(), mods=modules(), ra=roleAll();
+    if(!raSel||roles.indexOf(raSel)<0)raSel=roles[0]||'';
+    var pol=ra[raSel]||{mode:'all',pages:{}};
+    var onRole=usersOnRole(raSel);
+    var ovr=overriddenUsers();
+    var onRoleOverridden=onRole.filter(function(c){return (userAll()[c.u]||{}).mode;}).length;
+    var inherit=onRole.length-onRoleOverridden;
+    var grid=mods.map(function(m){
+      var locked=ALWAYS.indexOf(m.k)>=0;
+      var on=pol.mode!=='custom'||locked||(pol.pages&&pol.pages[m.k]);
+      return '<label class="ac-mod'+(on?' on':'')+(locked?' locked':'')+'"><input type="checkbox" '+(on?'checked':'')+(locked||pol.mode!=='custom'?' disabled':'')+' onchange="raTog(\''+esc(m.k)+'\',this.checked)"> '+esc(m.label)+(locked?' <span class="v34-dim" style="font-size:9px">always</span>':'')+'</label>';
+    }).join('');
+    var ovrRows = ovr.length? ovr.map(function(o){
+      return '<tr><td><b>'+esc(o.name)+'</b><br><span class="v34-dim" style="font-size:11px">'+esc(o.role)+'</span></td>'+
+        '<td><span class="ra-badge '+(o.mode==='custom'?'cust':'full')+'">'+(o.mode==='custom'?'Custom pages':'Full access')+'</span></td>'+
+        '<td style="text-align:right"><button class="v34-btn" style="padding:4px 10px;font-size:11px" onclick="raClearUser(\''+esc(o.u)+'\')">Clear · inherit role</button></td></tr>';
+    }).join('') : '<tr><td colspan="3" class="v34-dim" style="padding:12px">No personal overrides. Everyone inherits their role policy above.</td></tr>';
+
+    return '<div class="ra-wrap" style="margin-top:16px">'+
+      '<div class="ra-card qc-card">'+
+        '<h4 class="v34-sh" style="margin-top:0">Access by role <span class="ra-tag">grant a whole role at once</span></h4>'+
+        '<p class="v34-sub" style="margin:4px 0 12px">Set the default folders every member of a role can open. Individual people can still be given a personal override below (it takes precedence). Admins always have full access.</p>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px">'+
+          '<span class="v34-dim" style="font-size:11px">Role:</span>'+
+          '<select class="v34-in" onchange="raPick(this.value)">'+roles.map(function(r){return '<option value="'+esc(r)+'"'+(r===raSel?' selected':'')+'>'+esc(r)+'</option>';}).join('')+'</select>'+
+          '<label class="v34-ck"><input type="radio" name="ramode" '+(pol.mode!=='custom'?'checked':'')+' onclick="raMode(\'all\')"> Full access</label>'+
+          '<label class="v34-ck"><input type="radio" name="ramode" '+(pol.mode==='custom'?'checked':'')+' onclick="raMode(\'custom\')"> Custom</label>'+
+        '</div>'+
+        '<p class="v34-sub" style="margin:2px 0 10px;font-size:11px">'+onRole.length+' user'+(onRole.length===1?'':'s')+' on this role · '+inherit+' inherit this policy · '+onRoleOverridden+' have a personal override.</p>'+
+        '<div class="ac-grid">'+grid+'</div>'+
+        '<button class="v34-btn gold" style="margin-top:10px" onclick="raSave()">Save policy for '+esc(raSel)+'</button>'+
+      '</div>'+
+      '<div class="ra-card qc-card" style="margin-top:14px">'+
+        '<h4 class="v34-sh" style="margin-top:0">Personal overrides</h4>'+
+        '<p class="v34-sub" style="margin:4px 0 10px">These people have their own access set (in the panel above/left) which overrides their role. Clear one to make that person inherit their role policy again.</p>'+
+        '<div class="v34-tblwrap"><table class="v34-tbl"><thead><tr><th>Member</th><th>Personal access</th><th></th></tr></thead><tbody>'+ovrRows+'</tbody></table></div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  function appendRoleCard(){
+    var pg=document.getElementById('page-access'); if(!pg||!isAdmin())return;
+    var old=pg.querySelector('.ra-wrap'); if(old)old.remove();
+    pg.insertAdjacentHTML('beforeend',roleCardHTML());
+  }
+
+  window.raPick=function(r){raSel=r;appendRoleCard();};
+  window.raMode=function(m){var ra=roleAll();ra[raSel]=ra[raSel]||{pages:{}};ra[raSel].mode=m;set(MK_ROLE,ra);appendRoleCard();};
+  window.raTog=function(k,on){var ra=roleAll();ra[raSel]=ra[raSel]||{mode:'custom',pages:{}};ra[raSel].pages=ra[raSel].pages||{};if(on)ra[raSel].pages[k]=1;else delete ra[raSel].pages[k];set(MK_ROLE,ra);};
+  window.raSave=function(){toastX('Role policy saved for '+raSel+' — applies to each member on their next login');appendRoleCard();};
+  window.raClearUser=function(u){var ua=userAll();delete ua[u];set(MK_USER,ua);var c=creds().find(function(x){return x.u===u;})||{};toastX((c.name||u)+' now inherits the '+(c.role||'role')+' policy');appendRoleCard();};
+
+  /* ═══ wiring: run after V59's renderAccess + enforce on nav / vertical / boot ═══ */
+  function boot(){
+    if(typeof window.renderAccess==='function'&&!window.__v61RA){window.__v61RA=1;
+      var _ra=window.renderAccess; window.renderAccess=function(){_ra.apply(this,arguments);setTimeout(appendRoleCard,10);};
+    }
+    if(typeof window.go==='function'&&!window.__v61Go){window.__v61Go=1;
+      var _go=window.go; window.go=function(p,btn){_go(p,btn);
+        if(p==='access')setTimeout(appendRoleCard,80);
+        setTimeout(enforceRole,60);
+      };
+    }
+    if(!window.__v61Sv){window.__v61Sv=1;var _sv=window.setVertical;if(typeof _sv==='function')window.setVertical=function(v){_sv(v);setTimeout(enforceRole,150);};}
+    setTimeout(enforceRole,350); setTimeout(enforceRole,1400);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,2300);
+})();
+
+</script>
 </body>
 </html>
