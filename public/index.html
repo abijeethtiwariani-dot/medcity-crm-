@@ -17432,5 +17432,131 @@ body.light .funnel .f-bar,body.light .f-bar{color:#fff!important}
 })();
 
 </script>
+
+<style id="v64Style">
+/* V64 — cloud sync badge */
+.cl-badge{margin-top:8px;font-size:11.5px;font-weight:600;color:#2E7D5B;background:rgba(70,227,176,.12);border:1px solid rgba(70,227,176,.3);border-radius:9px;padding:6px 10px;line-height:1.5;max-width:640px}
+
+</style>
+<script id="v64Script">
+(function(){
+  if(window.__V64)return; window.__V64=1;
+  /* ═══ V64 — Firebase cloud sync for accounts (shared logins across devices).
+     Uses the Firestore REST API (no SDK → no CSP issues) against one document
+     sync/accounts = { credentials:[...], profiles:{...}, updatedAt }.
+     Pull on load + poll; push on every credential/photo change. Cloud is the
+     source of truth on conflicts, but local-only accounts are never dropped
+     (union merge) so nothing is lost. To REVOKE access everywhere, DISABLE the
+     login (toggle) — a field change that propagates; plain Delete is local only.
+     Demo-grade: the web API key is public (fine) but the store is open — do not
+     keep genuinely sensitive passwords here; the secure build is the Medcity SaaS. ═══ */
+  var PROJECT='medcity-crm-portal';
+  var KEY='AIzaSyDiMflXx_xOzKthBSOPnUoP2Sr79PqE4Cs';
+  var DOCURL='https://firestore.googleapis.com/v1/projects/'+PROJECT+'/databases/(default)/documents/sync/accounts?key='+KEY;
+
+  function lget(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function lset(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function now(){return String(Date.now());}
+
+  var pushing=false, lastLocalChange=0, fails=0, connectedOnce=false;
+
+  function cloudGet(){
+    return fetch(DOCURL,{method:'GET'}).then(function(r){
+      if(r.status===404)return {__empty:true};
+      if(!r.ok)throw new Error('get'+r.status);
+      return r.json();
+    }).then(function(j){
+      if(j&&j.__empty)return {__empty:true};
+      if(!j||!j.fields||!j.fields.data)return {__empty:true};
+      try{return JSON.parse(j.fields.data.stringValue||'null')||{__empty:true};}catch(e){return {__empty:true};}
+    });
+  }
+  function cloudPut(payload){
+    var body={fields:{data:{stringValue:JSON.stringify(payload)}}};
+    return fetch(DOCURL,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.ok;});
+  }
+
+  function sig(creds){return (creds||[]).map(function(c){return (c.u||'')+'~'+(c.p||'')+'~'+(c.active?1:0)+'~'+(c.role||'')+'~'+(c.branch||'')+'~'+(c.vertAccess||'')+'~'+(c.leadId||'');}).sort().join('|');}
+  function mergeByUser(primary,secondary){ /* primary wins on conflict, secondary-only kept */
+    var m={};
+    (secondary||[]).forEach(function(c){if(c&&c.u)m[String(c.u).toLowerCase()]=c;});
+    (primary||[]).forEach(function(c){if(c&&c.u)m[String(c.u).toLowerCase()]=c;});
+    return Object.keys(m).map(function(k){return m[k];});
+  }
+
+  function pushRaw(creds,prof){
+    pushing=true;
+    return cloudPut({credentials:creds,profiles:prof,updatedAt:now()})
+      .then(function(){pushing=false;return true;})
+      .catch(function(){pushing=false;return false;});
+  }
+  function pushUp(){ lastLocalChange=Date.now(); pushRaw(lget('gp-credentials',[])||[], lget('gp-profiles',{})||{}); }
+  window.__cloudPush=pushUp;
+
+  function handle(cloud,initial){
+    var local=lget('gp-credentials',[])||[], lprof=lget('gp-profiles',{})||{};
+    if(cloud&&cloud.__empty){ if(local.length)pushRaw(local,lprof); return; }
+    var ccreds=cloud.credentials||[], cprof=cloud.profiles||{};
+    var merged=mergeByUser(ccreds,local);          /* cloud wins, local-only kept */
+    var mprof=Object.assign({},lprof,cprof);        /* cloud wins per user */
+    /* profiles: silent local update + repaint, no reload */
+    if(JSON.stringify(mprof)!==JSON.stringify(lprof)){ lset('gp-profiles',mprof); try{if(window.paintAvatars)window.paintAvatars();}catch(e){} }
+    /* if cloud is missing anything we merged in, push the union up */
+    if(sig(merged)!==sig(ccreds)||JSON.stringify(mprof)!==JSON.stringify(cprof)){ pushRaw(merged,mprof); }
+    /* if our local list changed, persist + refresh so the login gate/CREDS see it */
+    if(sig(merged)!==sig(local)){
+      lset('gp-credentials',merged);
+      var gate=document.getElementById('authGate');
+      var onGate=gate&&gate.classList.contains('on');
+      if(initial||onGate){ location.reload(); }
+      else { toastX('Staff accounts synced from another device'); }
+    }
+  }
+
+  function pull(initial){ return cloudGet().then(function(c){fails=0;connectedOnce=true;markCard();handle(c,initial);}).catch(function(){fails++;}); }
+
+  /* poll with graceful backoff (artifact CSP / offline → stop after a few fails) */
+  function tick(){
+    if(fails>=3){return;}                              /* offline or blocked: give up quietly */
+    if(Date.now()-lastLocalChange<10000){ setTimeout(tick,4000); return; }   /* just edited: don't clobber */
+    if(pushing){ setTimeout(tick,4000); return; }
+    pull(false).then(function(){ setTimeout(tick, fails>=3?60000:15000); });
+  }
+
+  /* wrap every credential/photo mutator so changes go to the cloud */
+  function wrap(){
+    ['crSave','crToggle','crReset','crDel','crbImport','crIssueStudentLogin','pfSave'].forEach(function(fn){
+      var f=window[fn];
+      if(typeof f==='function'&&!f.__v64){
+        var w=function(){ var r=f.apply(this,arguments); lastLocalChange=Date.now(); setTimeout(pushUp,250); return r; };
+        w.__v64=true; window[fn]=w;
+      }
+    });
+  }
+
+  /* let the admin know sync is on, on the credentials backup card */
+  function markCard(){
+    var card=document.querySelector('.cr-backup'); if(!card)return;
+    /* replace the now-outdated "no shared server" line with the sync reality */
+    var hint=card.querySelector('.crb-hint');
+    if(hint&&!hint.dataset.v64){hint.dataset.v64='1';
+      hint.innerHTML='Accounts now <b>sync automatically across every device and live link</b> (cloud sync is on). Create a login once and staff can sign in anywhere. Export / Import below is an optional manual backup.';}
+    if(card.querySelector('.cl-badge'))return;
+    var t=card.querySelector('.crb-txt'); if(!t)return;
+    t.insertAdjacentHTML('beforeend','<div class="cl-badge">● Cloud sync ON — accounts you create sync to every device automatically. To revoke access everywhere, use the Login toggle (Disable) rather than Delete.</div>');
+  }
+
+  function boot(){
+    wrap();
+    pull(true).then(function(){ setTimeout(tick,15000); });
+    setTimeout(wrap,1500); setTimeout(wrap,3500);
+    setTimeout(markCard,900); setTimeout(markCard,2000);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,1300);
+})();
+
+</script>
 </body>
 </html>

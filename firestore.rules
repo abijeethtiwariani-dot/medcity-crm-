@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Demo-grade shared store for the single-file CRM prototype.
+    // Open read/write on the sync collection only (no Firebase Auth in the app).
+    match /sync/{doc} {
+      allow read, write: if true;
+    }
+  }
+}
