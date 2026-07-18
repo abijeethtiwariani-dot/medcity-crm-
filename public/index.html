@@ -17341,5 +17341,96 @@ body.light .funnel .f-bar,body.light .f-bar{color:#fff!important}
 })();
 
 </script>
+
+<style id="v63Style">
+/* V63 — export/import accounts card */
+.cr-backup{margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.cr-backup .crb-txt b{font-size:13px}
+.cr-backup .crb-hint{font-size:12px;color:var(--mist);max-width:640px;margin-top:3px;line-height:1.5}
+.cr-backup .crb-btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cr-backup .crb-imp{cursor:pointer;display:inline-block}
+
+</style>
+<script id="v63Script">
+(function(){
+  if(window.__V63)return; window.__V63=1;
+  /* ═══ V63 — move accounts across devices/browsers/links.
+     Logins live in per-browser, per-origin localStorage (no server), so a
+     credential the admin creates in one browser does not exist for staff on
+     another device — or even on a different live link (vercel/firebase/artifact
+     are separate origins). This adds Export / Import on the User Credentials
+     page so the admin can carry the account list (+ photos) to each device. ═══ */
+  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function isAdmin(){var s=get('gp-session',{})||{};return (s.role||'')==='Admin';}
+  function stamp(){try{return new Date().toISOString();}catch(e){return '';}}
+
+  window.crbExport=function(){
+    var creds=get('gp-credentials',[])||[];
+    var profiles=get('gp-profiles',{})||{};
+    var payload={type:'medcity-accounts',v:1,exportedAt:stamp(),count:creds.length,credentials:creds,profiles:profiles};
+    var s=JSON.stringify(payload,null,2);
+    var a=document.createElement('a');
+    a.href='data:application/json;charset=utf-8,'+encodeURIComponent(s);
+    a.download='medcity-accounts-'+(stamp().slice(0,10)||'export')+'.json';
+    document.body.appendChild(a);a.click();a.remove();
+    toastX('Exported '+creds.length+' accounts - import this file on each staff device/link');
+  };
+
+  window.crbImport=function(inp){
+    var f=inp.files&&inp.files[0]; if(!f)return;
+    var r=new FileReader();
+    r.onload=function(){
+      var data; try{data=JSON.parse(r.result);}catch(e){alert('That file is not a valid Medcity accounts file.');inp.value='';return;}
+      var incoming=data&&(data.credentials||data.creds)||(Array.isArray(data)?data:null);
+      if(!incoming||!incoming.length){alert('No accounts found in that file.');inp.value='';return;}
+      var cur=get('gp-credentials',[])||[], byU={};
+      cur.forEach(function(c){if(c&&c.u)byU[String(c.u).toLowerCase()]=c;});
+      var added=0,updated=0;
+      incoming.forEach(function(c){ if(!c||!c.u)return; var k=String(c.u).toLowerCase(); if(byU[k])updated++; else added++; byU[k]=Object.assign({},byU[k],c); });
+      var merged=Object.keys(byU).map(function(k){return byU[k];});
+      /* merge profile photos/details too, if the file has them */
+      if(data.profiles&&typeof data.profiles==='object'){
+        var P=get('gp-profiles',{})||{};
+        Object.keys(data.profiles).forEach(function(u){P[u]=Object.assign({},P[u],data.profiles[u]);});
+        try{localStorage.setItem('gp-profiles',JSON.stringify(P));}catch(e){}
+      }
+      try{localStorage.setItem('gp-credentials',JSON.stringify(merged));}catch(e){}
+      inp.value='';
+      alert('Imported '+incoming.length+' account(s): '+added+' new, '+updated+' updated. The page will reload so the new logins are active on this device.');
+      location.reload();
+    };
+    r.readAsText(f);
+  };
+
+  function injectBackup(){
+    var pg=document.getElementById('page-credentials'); if(!pg||!isAdmin())return;
+    if(pg.querySelector('.cr-backup'))return;
+    var creds=get('gp-credentials',[])||[];
+    var html='<div class="cr-backup qc-card">'+
+      '<div class="crb-txt"><b>Move logins to another device or link</b>'+
+        '<div class="crb-hint">Accounts are saved in <b>this browser only</b> (there is no shared server). For staff to sign in on their own phone/computer - or on a different live link - export the accounts here and import the file there once. '+creds.length+' account(s) currently on this device.</div>'+
+      '</div>'+
+      '<div class="crb-btns">'+
+        '<button class="v34-btn gold" onclick="crbExport()">Export accounts</button>'+
+        '<label class="v34-btn crb-imp">Import accounts<input type="file" accept="application/json,.json" style="display:none" onchange="crbImport(this)"></label>'+
+      '</div>'+
+    '</div>';
+    var pf=pg.querySelector('.pf-backend');
+    if(pf)pf.insertAdjacentHTML('beforebegin',html); else pg.insertAdjacentHTML('afterbegin',html);
+  }
+  window.__crbInject=injectBackup;
+
+  function boot(){
+    if(typeof window.go==='function'&&!window.__v63Go){window.__v63Go=1;var _go=window.go;
+      window.go=function(p,b){_go(p,b);if(p==='credentials')setTimeout(injectBackup,90);};}
+    setTimeout(injectBackup,700);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,1600);
+})();
+
+</script>
 </body>
 </html>
