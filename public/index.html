@@ -17617,5 +17617,157 @@ body.light .funnel .f-bar,body.light .f-bar{color:#fff!important}
 })();
 
 </script>
+
+<style id="v66Style">
+/* V66 — "Your growth" QC + promotion card on the profile dashboard */
+#pvGrowth.pvg{margin:0 0 16px;padding:18px 20px}
+.pvg-grid{display:grid;grid-template-columns:200px 1fr 1fr;gap:22px;align-items:start}
+@media(max-width:1000px){.pvg-grid{grid-template-columns:1fr}}
+.pvg-eyebrow{font-family:var(--font-m,monospace);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#7C5CE0;margin-bottom:10px}
+.pvg-scorecol{text-align:center}
+.pvg-ring{width:128px;height:128px;border-radius:50%;margin:0 auto 10px;display:grid;place-items:center}
+.pvg-ringin{width:100px;height:100px;border-radius:50%;background:var(--panel,#fff);display:grid;place-items:center;line-height:1}
+.pvg-ringin b{font:800 34px var(--font-d,sans-serif);color:var(--paper,#211D35)}
+.pvg-ringin span{font-size:11px;color:var(--mist,#6E688A);margin-top:2px}
+.pvg-badge{display:inline-block;font-size:11px;font-weight:700;border:1px solid;border-radius:20px;padding:3px 12px}
+.pvg-note{font-size:10px;color:var(--mist,#6E688A);margin-top:7px}
+.pvg-h{font:700 13.5px var(--font-d,sans-serif);color:var(--paper,#211D35);margin-bottom:12px}
+.pvg-imp{margin-bottom:12px}
+.pvg-impr{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--paper,#211D35);margin-bottom:5px}
+.pvg-impr b{font-weight:600}
+.pvg-impr span{white-space:nowrap}
+.pvg-impr span{font-variant-numeric:tabular-nums;color:var(--mist,#6E688A)}
+.pvg-bar{height:7px;border-radius:6px;background:rgba(124,92,224,.12);overflow:hidden}
+.pvg-bar i{display:block;height:100%;border-radius:6px}
+.pvg-tip{font-size:11px;color:var(--mist,#6E688A);line-height:1.5;margin-top:5px}
+.pvg-role{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:10px}
+.pvg-cur{font-size:12px;color:var(--mist,#6E688A);background:rgba(124,92,224,.08);border-radius:20px;padding:4px 11px}
+.pvg-arrow{color:#7C5CE0;font-weight:700}
+.pvg-nxt{font-size:13px;font-weight:700;color:#fff;background:linear-gradient(90deg,#7C5CE0,#9E7BFF);border-radius:20px;padding:5px 13px}
+.pvg-ready{font-size:11.5px;font-weight:600;color:#2E7D5B;background:rgba(70,227,176,.14);border:1px solid rgba(70,227,176,.3);border-radius:9px;padding:7px 10px;margin-bottom:10px;line-height:1.4}
+.pvg-goal{margin-bottom:10px}
+.pvg-gl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--paper,#211D35);margin-bottom:5px}
+.pvg-gl span:last-child{font-variant-numeric:tabular-nums;color:var(--mist,#6E688A)}
+.pvg-topmsg b{font:700 13px var(--font-d,sans-serif);color:#7C5CE0}
+
+</style>
+<script id="v66Script">
+(function(){
+  if(window.__V66)return; window.__V66=1;
+  /* ═══ V66 — "Your growth" card on the profile dashboard: QC quality score,
+     the 2 weakest areas with a concrete tip each, and the next role the person
+     can be promoted to with progress toward the QC + conversion bar. Motivates
+     staff to see exactly what to improve and what the next increment needs. ═══ */
+  function session(){try{var v=localStorage.getItem('gp-session');return v?JSON.parse(v):{};}catch(e){return {};}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function hash(s){s=String(s||'');var h=0;for(var i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0;}return h;}
+
+  var DIMS=[
+    {k:'call',label:'Call quality',w:.25,tip:'Open every call with a clear agenda and confirm the next step before you hang up.'},
+    {k:'docs',label:'Documentation',w:.20,tip:'Chase pending documents daily and keep each student folder up to date.'},
+    {k:'comp',label:'Process compliance',w:.25,tip:'Log every interaction and move leads through the workflow stages on time.'},
+    {k:'emp',label:'Empathy & rapport',w:.15,tip:'Acknowledge the student’s concern first, then personalise your guidance.'},
+    {k:'fu',label:'Follow-ups',w:.15,tip:'Set a follow-up date after every touch so no lead ever goes cold.'}
+  ];
+  var LADDER={
+    'counsellor':{next:'Senior Counsellor',qc:82,conv:35},
+    'senior counsellor':{next:'Team Lead',qc:88,conv:45},
+    'team lead':{next:'Branch Head',qc:90,conv:50},
+    'branch head':{next:'Operations Manager',qc:92,conv:55},
+    'operations':{next:'Manager',qc:94,conv:60},
+    'operations manager':{next:'Manager',qc:94,conv:60},
+    'consultant':{next:'Senior Counsellor',qc:82,conv:35},
+    'front office':{next:'Counsellor',qc:78,conv:30},
+    'lead manager':{next:'Team Lead',qc:88,conv:45},
+    'manager':{top:true},
+    'admin':{top:true,lead:true}
+  };
+
+  function person(){
+    var s=session(), nm=(s.name||'').trim().toLowerCase();
+    var C=window.COUNS||[];
+    var match=C.filter(Boolean).find(function(c){return (c.n||'').trim().toLowerCase()===nm;});
+    var qc={}, score, conv;
+    if(match&&match.qc){ DIMS.forEach(function(d){qc[d.k]=match.qc[d.k];}); score=match.qcScore; conv=match.conv; }
+    else { /* derive deterministic, plausible values so any user still sees the concept */
+      var base=68+hash(s.u||nm||'x')%16;
+      DIMS.forEach(function(d,i){var off=((hash((s.u||'')+d.k)%15)-7);qc[d.k]=Math.max(56,Math.min(96,base+off+(i%2?2:-3)));});
+      score=Math.round(DIMS.reduce(function(a,d){return a+qc[d.k]*d.w;},0));
+      conv=28+hash((s.u||'')+'c')%24;
+    }
+    return {role:s.role||'Counsellor',qc:qc,score:score,conv:conv,matched:!!match};
+  }
+
+  function band(v){return v>=85?['Excellent','#2E9B5B']:v>=70?['On track','#B58A00']:['Needs coaching','#C0405A'];}
+
+  function cardHTML(){
+    var p=person();
+    var b=band(p.score);
+    /* two weakest dimensions */
+    var ranked=DIMS.slice().sort(function(a,b){return p.qc[a.k]-p.qc[b.k];});
+    var weak=ranked.slice(0,2);
+    var improve=weak.map(function(d){
+      var pct=Math.round(p.qc[d.k]);
+      return '<div class="pvg-imp"><div class="pvg-impr"><b>'+esc(d.label)+'</b><span>'+pct+'/100</span></div>'+
+        '<div class="pvg-bar"><i style="width:'+pct+'%;background:'+(pct>=70?'#7C5CE0':'#C0405A')+'"></i></div>'+
+        '<div class="pvg-tip">'+esc(d.tip)+'</div></div>';
+    }).join('');
+    /* next role / promotion */
+    var info=LADDER[(p.role||'').toLowerCase()]||{next:'Senior Counsellor',qc:82,conv:35};
+    var nextBlock;
+    if(info.top){
+      nextBlock='<div class="pvg-topmsg"><b>'+(info.lead?'Leadership tier':'Top of the counselling ladder')+'</b>'+
+        '<div class="pvg-tip">'+(info.lead?'Focus on coaching your team’s QC scores up — their growth is your scorecard now.':'You’ve reached the top counselling role. Mentor the next generation of counsellors.')+'</div></div>';
+    } else {
+      var qcPct=Math.min(100,Math.round(p.score/info.qc*100));
+      var cvPct=Math.min(100,Math.round(p.conv/info.conv*100));
+      var ready=p.score>=info.qc&&p.conv>=info.conv;
+      nextBlock=
+        '<div class="pvg-role"><span class="pvg-cur">'+esc(p.role)+'</span><span class="pvg-arrow">→</span><span class="pvg-nxt">'+esc(info.next)+'</span></div>'+
+        (ready?'<div class="pvg-ready">You meet the bar for '+esc(info.next)+'. Ask your manager about the next step.</div>':'')+
+        '<div class="pvg-goal"><div class="pvg-gl"><span>QC score</span><span>'+p.score+' / '+info.qc+'</span></div><div class="pvg-bar"><i style="width:'+qcPct+'%;background:'+(p.score>=info.qc?'#2E9B5B':'#7C5CE0')+'"></i></div></div>'+
+        '<div class="pvg-goal"><div class="pvg-gl"><span>Conversion rate</span><span>'+p.conv+'% / '+info.conv+'%</span></div><div class="pvg-bar"><i style="width:'+cvPct+'%;background:'+(p.conv>=info.conv?'#2E9B5B':'#7C5CE0')+'"></i></div></div>';
+    }
+    return '<div class="pv-card pvg" id="pvGrowth">'+
+      '<div class="pvg-grid">'+
+        '<div class="pvg-col pvg-scorecol">'+
+          '<div class="pvg-eyebrow">QC quality score</div>'+
+          '<div class="pvg-ring" style="background:conic-gradient('+b[1]+' '+(p.score*3.6)+'deg,rgba(124,92,224,.14) 0)"><div class="pvg-ringin"><b>'+p.score+'</b><span>/100</span></div></div>'+
+          '<div class="pvg-badge" style="color:'+b[1]+';border-color:'+b[1]+'">'+b[0]+'</div>'+
+          (p.matched?'':'<div class="pvg-note">indicative — no QC evaluations yet</div>')+
+        '</div>'+
+        '<div class="pvg-col">'+
+          '<div class="pvg-h">Where you can improve</div>'+improve+
+        '</div>'+
+        '<div class="pvg-col">'+
+          '<div class="pvg-h">Your next step — what to earn it</div>'+nextBlock+
+        '</div>'+
+      '</div></div>';
+  }
+
+  function inject(){
+    var pg=document.getElementById('page-pv2'); if(!pg||!pg.classList.contains('on'))return;
+    if((session().role||'')==='Student')return;
+    if(pg.querySelector('#pvGrowth'))return;
+    var main=pg.querySelector('.pv-main'); if(!main)return;
+    var kpis=main.querySelector('.pv-kpis');
+    if(kpis)kpis.insertAdjacentHTML('afterend',cardHTML());
+    else main.insertAdjacentHTML('afterbegin',cardHTML());
+  }
+  window.__pvGrowth=inject;
+
+  function boot(){
+    var _go=window.go;
+    if(typeof _go==='function'&&!window.__v66Go){window.__v66Go=1;window.go=function(p,b){_go(p,b);
+      if(p==='pv2'){setTimeout(inject,120);setTimeout(inject,420);}
+    };}
+    if(!window.__v66Sv){window.__v66Sv=1;var _sv=window.setVertical;if(typeof _sv==='function')window.setVertical=function(v){if(_sv)_sv(v);setTimeout(inject,320);};}
+    setTimeout(inject,500);setTimeout(inject,1500);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,1300);setTimeout(boot,2600);
+})();
+
+</script>
 </body>
 </html>
