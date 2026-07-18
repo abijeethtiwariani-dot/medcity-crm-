@@ -17994,5 +17994,193 @@ body.light .funnel .f-bar,body.light .f-bar{color:#fff!important}
 })();
 
 </script>
+
+<style id="v68Style">
+/* V68 — Links & Forms registry */
+.lk-kpis{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.lk-kpi{background:var(--panel,#fff);border:1px solid var(--line);border-radius:12px;padding:12px 18px;min-width:130px}
+.lk-kpi b{display:block;font:800 22px var(--font-d,sans-serif);color:var(--paper,#211D35)}
+.lk-kpi span{font-size:11px;color:var(--mist,#6E688A)}
+.lk-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.lk-filters .v34-in{max-width:240px}
+.lk-filters input{flex:1;min-width:200px;max-width:none}
+.lk-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.lk-card{padding:16px 18px}
+.lk-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.lk-type{font-family:var(--font-m,monospace);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#7C5CE0;background:rgba(124,92,224,.1);border-radius:6px;padding:2px 7px}
+.lk-badge{font-size:10px;font-weight:700;border-radius:20px;padding:2px 9px;margin-left:6px}
+.lk-title{font:700 15px var(--font-d,sans-serif);color:var(--paper,#211D35);margin:8px 0 0}
+.lk-open{font-size:12px;font-weight:700;color:#7C5CE0;white-space:nowrap;text-decoration:none}
+.lk-open:hover{text-decoration:underline}
+.lk-purpose{font-size:12px;color:var(--paper,#211D35);line-height:1.5;margin:9px 0 4px}
+.lk-meta{margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+.lk-row{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:3px 0}
+.lk-row span{color:var(--mist,#6E688A);white-space:nowrap}
+.lk-row b{font-weight:600;text-align:right;word-break:break-word}
+.lk-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.lk-foot .v34-dim{font-size:10.5px}
+.lk-acts{display:flex;gap:6px;flex-wrap:wrap}
+.lk-a{font-size:11px;font-weight:600;border:1px solid var(--line);background:var(--panel-2,#F3F1FA);color:var(--paper,#211D35);border-radius:8px;padding:5px 10px;cursor:pointer;font-family:inherit}
+.lk-a.ok{background:rgba(70,227,176,.14);color:#2E7D5B;border-color:transparent}
+.lk-a.no,.lk-a.del{color:#C0405A}
+.lk-fl{display:block;font-size:11px;color:var(--mist,#6E688A)}
+.lk-fl .v34-in{width:100%;margin-top:4px}
+.lk-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.lk-2{grid-template-columns:1fr}}
+.lk-ta{min-height:60px;resize:vertical;font-family:inherit;line-height:1.5}
+
+</style>
+<script id="v68Script">
+(function(){
+  if(window.__V68)return; window.__V68=1;
+  /* ═══ V68 — Links & Forms registry: instead of uploading a file, paste the
+     link to an external Google Sheet / Google or Microsoft Form / Excel / Drive
+     file. Each entry records which form, who manages it, who is in charge, the
+     email it was created from, its purpose, and an approval by a team head /
+     manager (with who approved). Shared across all devices via Firestore
+     (sync/links doc, same open rule as accounts). ═══ */
+  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function session(){return get('gp-session',{})||{};}
+  function isAdmin(){return (session().role||'')==='Admin';}
+  var APPROVERS=['Admin','Manager','Branch Head','Team Lead','Operations'];
+  function canApprove(){return APPROVERS.indexOf(session().role||'')>=0;}
+  function now(){return Date.now();}
+  function stamp(){var d=new Date();return d.toISOString().slice(0,10)+' '+d.toTimeString().slice(0,5);}
+  function uid(){return 'lk'+now().toString(36)+Math.floor(Math.random()*1e4);}
+  function safeUrl(u){u=String(u||'').trim(); if(!u)return ''; if(/^https?:\/\//i.test(u))return u; if(/^[a-z][a-z0-9+.-]*:/i.test(u))return ''; return 'https://'+u;}
+  var TYPES=['Google Sheet','Google Form','Microsoft Form','Microsoft Excel','Google Doc','Google Drive folder','OneDrive / SharePoint','PDF / document link','Other'];
+
+  var MK='gp-links';
+  function links(){return get(MK,[])||[];}
+  function saveLinks(arr,push){set(MK,arr); if(push!==false)pushCloud();}
+
+  /* ─── cloud sync (Firestore REST, sync/links doc) ─── */
+  var KEY='AIzaSyDiMflXx_xOzKthBSOPnUoP2Sr79PqE4Cs';
+  var URL='https://firestore.googleapis.com/v1/projects/medcity-crm-portal/databases/(default)/documents/sync/links?key='+KEY;
+  var pushing=false, fails=0, lastLocal=0;
+  function cloudGet(){return fetch(URL).then(function(r){if(r.status===404)return {__e:1};if(!r.ok)throw 0;return r.json();}).then(function(j){if(j&&j.__e)return {__e:1};if(!j||!j.fields||!j.fields.data)return {__e:1};try{return JSON.parse(j.fields.data.stringValue||'null')||{__e:1};}catch(e){return {__e:1};}});}
+  function cloudPut(arr){var body={fields:{data:{stringValue:JSON.stringify({links:arr,updatedAt:String(now())})}}};return fetch(URL,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.ok;});}
+  function mergeLinks(cloud,local){var m={};(local||[]).forEach(function(e){if(e&&e.id)m[e.id]=e;});(cloud||[]).forEach(function(e){if(!e||!e.id)return;var ex=m[e.id];if(!ex||(e.at||0)>(ex.at||0))m[e.id]=e;});return Object.keys(m).map(function(k){return m[k];});}
+  function pushCloud(){lastLocal=now();if(pushing)return;pushing=true;cloudPut(links()).then(function(){pushing=false;}).catch(function(){pushing=false;});}
+  function pullCloud(initial){return cloudGet().then(function(c){fails=0;if(c&&c.__e){if(links().length)pushCloud();return;}var merged=mergeLinks(c.links||[],links());if(JSON.stringify(merged)!==JSON.stringify(links())){set(MK,merged);var pg=document.getElementById('page-links');if(pg&&pg.classList.contains('on'))renderLinks();}if(JSON.stringify(merged)!==JSON.stringify(c.links||[]))cloudPut(merged);}).catch(function(){fails++;});}
+  function tick(){if(fails>=3)return;if(now()-lastLocal<8000||pushing){setTimeout(tick,4000);return;}pullCloud(false).then(function(){setTimeout(tick,20000);});}
+
+  /* ─── page render ─── */
+  var fType='', fApp='', fQ='';
+  function badge(a){var m={Approved:['Approved','#2E7D5B','rgba(70,227,176,.14)'],Pending:['Pending approval','#B58A00','rgba(235,186,82,.16)'],Rejected:['Rejected','#C0405A','rgba(247,108,108,.14)']};var x=m[a]||m.Pending;return '<span class="lk-badge" style="color:'+x[1]+';background:'+x[2]+'">'+x[0]+'</span>';}
+  function renderLinks(){
+    var pg=document.getElementById('page-links'); if(!pg)return;
+    var all=links().filter(function(e){return !e.deleted;});
+    var list=all.filter(function(e){return (!fType||e.type===fType)&&(!fApp||e.approval===fApp)&&(!fQ||((e.title||'')+(e.purpose||'')+(e.managedBy||'')+(e.email||'')).toLowerCase().indexOf(fQ.toLowerCase())>=0);});
+    var appr=all.filter(function(e){return e.approval==='Approved';}).length, pend=all.filter(function(e){return e.approval==='Pending';}).length;
+    var typeOpts='<option value="">All types</option>'+TYPES.map(function(t){return '<option'+(fType===t?' selected':'')+'>'+esc(t)+'</option>';}).join('');
+    pg.innerHTML=
+      '<div class="v34-head"><div><div class="v34-eyebrow">External files &amp; forms</div>'+
+      '<p class="v34-sub">Instead of uploading, paste the link to any outside Google Sheet, Google / Microsoft Form, Excel or Drive file. Each one records who manages it, who is in charge, the email it was made from, its purpose, and its approval.</p></div>'+
+      '<button class="v34-btn gold" style="margin-left:auto" onclick="lkOpen(\'\')">+ Add a link</button></div>'+
+      '<div class="lk-kpis"><div class="lk-kpi"><b>'+all.length+'</b><span>Links registered</span></div><div class="lk-kpi"><b style="color:#2E7D5B">'+appr+'</b><span>Approved</span></div><div class="lk-kpi"><b style="color:#B58A00">'+pend+'</b><span>Pending approval</span></div></div>'+
+      '<div class="lk-filters"><select class="v34-in" onchange="lkFType(this.value)">'+typeOpts+'</select>'+
+        '<select class="v34-in" onchange="lkFApp(this.value)"><option value="">Any approval</option>'+['Approved','Pending','Rejected'].map(function(a){return '<option'+(fApp===a?' selected':'')+'>'+esc(a)+'</option>';}).join('')+'</select>'+
+        '<input class="v34-in" placeholder="Search title, purpose, manager, email…" value="'+esc(fQ)+'" oninput="lkFQ(this.value)"></div>'+
+      '<div class="lk-list">'+(list.length?list.slice().reverse().map(card).join(''):'<div class="qc-card" style="color:var(--mist);text-align:center;padding:26px">No links yet. Click "+ Add a link" to register the first external file or form.</div>')+'</div>';
+  }
+  function card(e){
+    var url=safeUrl(e.url);
+    var mine=isAdmin()||e.addedBy===session().name;
+    var acts='';
+    if(e.approval==='Pending'&&canApprove())acts+='<button class="lk-a ok" onclick="lkApprove(\''+e.id+'\')">Approve</button><button class="lk-a no" onclick="lkReject(\''+e.id+'\')">Reject</button>';
+    if(mine)acts+='<button class="lk-a" onclick="lkOpen(\''+e.id+'\')">Edit</button><button class="lk-a del" onclick="lkDel(\''+e.id+'\')">Delete</button>';
+    return '<div class="lk-card qc-card">'+
+      '<div class="lk-top"><div><span class="lk-type">'+esc(e.type||'Link')+'</span> '+badge(e.approval||'Pending')+'<h3 class="lk-title">'+esc(e.title||'Untitled')+'</h3></div>'+
+        (url?'<a class="lk-open" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Open link →</a>':'<span class="v34-dim" style="font-size:11px">invalid link</span>')+'</div>'+
+      (e.purpose?'<div class="lk-purpose">'+esc(e.purpose)+'</div>':'')+
+      '<div class="lk-meta">'+
+        row('Which form / file',e.title)+row('Managed by',e.managedBy)+row('In charge',e.inCharge)+row('Created from email',e.email)+
+        (e.approval==='Approved'?row('Approved by',(e.approvedBy||'')+(e.approvedAt?' · '+e.approvedAt:'')):e.approval==='Rejected'?row('Rejected by',(e.approvedBy||'')+(e.approvedAt?' · '+e.approvedAt:'')):row('Approval','Awaiting a team head / manager'))+
+      '</div>'+
+      '<div class="lk-foot"><span class="v34-dim">Added by '+esc(e.addedBy||'—')+(e.addedAt?' · '+esc(e.addedAt):'')+'</span><div class="lk-acts">'+acts+'</div></div>'+
+    '</div>';
+  }
+  function row(k,v){return '<div class="lk-row"><span>'+esc(k)+'</span><b>'+esc(v||'—')+'</b></div>';}
+
+  window.lkFType=function(v){fType=v;renderLinks();};
+  window.lkFApp=function(v){fApp=v;renderLinks();};
+  window.lkFQ=function(v){fQ=v;renderLinks();var i=document.querySelector('.lk-filters input');if(i){i.focus();i.value=fQ;i.setSelectionRange(fQ.length,fQ.length);}};
+
+  /* ─── add / edit form ─── */
+  function ensureModal(){if(document.getElementById('lkBg'))return;document.body.insertAdjacentHTML('beforeend','<div class="docm-bg" id="lkBg" onclick="lkClose()"></div><div class="docm" id="lkM" style="width:min(560px,95vw)"></div>');}
+  window.lkClose=function(){var b=document.getElementById('lkBg'),m=document.getElementById('lkM');if(b)b.classList.remove('on');if(m)m.classList.remove('on');};
+  window.lkOpen=function(id){
+    ensureModal();
+    var e=links().find(function(x){return x.id===id;})||{};
+    var s=session();
+    var typeOpts=TYPES.map(function(t){return '<option'+(e.type===t?' selected':'')+'>'+esc(t)+'</option>';}).join('');
+    document.getElementById('lkM').innerHTML=
+      '<div class="docm-h"><div><h2>'+(id?'Edit link':'Add an external link')+'</h2><div class="sub">Paste the link and say who owns it and what it is for</div></div><button class="docm-x" onclick="lkClose()">✕</button></div>'+
+      '<div style="padding:16px 20px;display:flex;flex-direction:column;gap:11px">'+
+        '<label class="lk-fl">Which form / file (title)<input class="v34-in" id="lk_title" value="'+esc(e.title||'')+'" placeholder="e.g. Germany Applications Tracker"></label>'+
+        '<div class="lk-2"><label class="lk-fl">Type<select class="v34-in" id="lk_type">'+typeOpts+'</select></label>'+
+        '<label class="lk-fl">Created from email<input class="v34-in" id="lk_email" value="'+esc(e.email||s.email||'')+'" placeholder="owner@medcity.com"></label></div>'+
+        '<label class="lk-fl">Link (paste the URL)<input class="v34-in" id="lk_url" value="'+esc(e.url||'')+'" placeholder="https://docs.google.com/…"></label>'+
+        '<div class="lk-2"><label class="lk-fl">Managed by<input class="v34-in" id="lk_mgr" value="'+esc(e.managedBy||'')+'" placeholder="person who maintains it"></label>'+
+        '<label class="lk-fl">In charge / responsible<input class="v34-in" id="lk_chg" value="'+esc(e.inCharge||'')+'" placeholder="person or team accountable"></label></div>'+
+        '<label class="lk-fl">Purpose — what is it for<textarea class="v34-in lk-ta" id="lk_purpose" placeholder="Why this file/form exists and how it is used">'+esc(e.purpose||'')+'</textarea></label>'+
+        (canApprove()?'<label class="lk-fl">Approval<select class="v34-in" id="lk_app"><option'+((e.approval||'Pending')==='Pending'?' selected':'')+'>Pending</option><option'+(e.approval==='Approved'?' selected':'')+'>Approved</option><option'+(e.approval==='Rejected'?' selected':'')+'>Rejected</option></select></label>':'<div class="v34-dim" style="font-size:11.5px">New links start as <b>Pending</b> until a team head / manager approves them.</div>')+
+        '<button class="v34-btn gold" onclick="lkSave(\''+esc(id)+'\')">'+(id?'Save changes':'Add link')+'</button>'+
+      '</div>';
+    document.getElementById('lkBg').classList.add('on');document.getElementById('lkM').classList.add('on');
+  };
+  window.lkSave=function(id){
+    var g=function(x){return (document.getElementById(x)||{}).value||'';};
+    var title=g('lk_title').trim(), url=g('lk_url').trim();
+    if(!title){toastX('Give the file / form a title');return;}
+    if(!safeUrl(url)){toastX('Paste a valid http(s) link');return;}
+    var arr=links(), s=session();
+    var e=arr.find(function(x){return x.id===id;});
+    var appEl=document.getElementById('lk_app');
+    if(!e){e={id:uid(),addedBy:s.name||'—',addedAt:stamp(),approval:'Pending'};arr.push(e);}
+    e.title=title;e.type=g('lk_type');e.url=url;e.email=g('lk_email').trim();e.managedBy=g('lk_mgr').trim();e.inCharge=g('lk_chg').trim();e.purpose=g('lk_purpose').trim();
+    if(appEl){var was=e.approval;e.approval=appEl.value;if(e.approval!==was&&(e.approval==='Approved'||e.approval==='Rejected')){e.approvedBy=(s.name||'')+' ('+(s.role||'')+')';e.approvedAt=stamp();}}
+    e.at=now();
+    saveLinks(arr);lkClose();renderLinks();toastX(id?'Link updated':'Link added');
+  };
+  function decide(id,status){
+    var arr=links(), s=session(), e=arr.find(function(x){return x.id===id;}); if(!e)return;
+    if(!canApprove()){toastX('Only a team head / manager can approve');return;}
+    e.approval=status;e.approvedBy=(s.name||'')+' ('+(s.role||'')+')';e.approvedAt=stamp();e.at=now();
+    saveLinks(arr);renderLinks();toastX('Link '+status.toLowerCase());
+  }
+  window.lkApprove=function(id){decide(id,'Approved');};
+  window.lkReject=function(id){decide(id,'Rejected');};
+  window.lkDel=function(id){
+    var arr=links(), e=arr.find(function(x){return x.id===id;}); if(!e)return;
+    if(!(isAdmin()||e.addedBy===session().name)){toastX('You can only remove links you added');return;}
+    if(!confirm('Remove this link from the registry?'))return;
+    e.deleted=true;e.at=now();saveLinks(arr);renderLinks();toastX('Link removed');
+  };
+
+  /* ─── nav + boot ─── */
+  function boot(){
+    var content=document.querySelector('.content'), side=document.querySelector('.side');
+    if(content&&!document.getElementById('page-links')){var d=document.createElement('div');d.className='page';d.id='page-links';content.appendChild(d);}
+    try{if(typeof titles!=='undefined')titles.links=['Links &amp; Forms','external files · owners · approval'];}catch(e){}
+    if(side&&!document.querySelector('.nav-btn[data-page=links]')){
+      var ref=document.querySelector('.nav-btn[data-page=docdesk]')||document.querySelector('.nav-btn[data-page=payments]');
+      var b=document.createElement('button');b.className='nav-btn';b.dataset.page='links';b.setAttribute('onclick',"go('links',this)");
+      b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7L12 19"/></svg>Links &amp; Forms';
+      if(ref&&ref.parentNode)ref.parentNode.insertBefore(b,ref.nextSibling); else if(side.querySelector('.side-foot'))side.insertBefore(b,side.querySelector('.side-foot')); else side.appendChild(b);
+    }
+    if(typeof window.go==='function'&&!window.__v68Go){window.__v68Go=1;var _go=window.go;window.go=function(p,btn){_go(p,btn);if(p==='links')setTimeout(renderLinks,40);};}
+    /* cloud */
+    pullCloud(true).then(function(){setTimeout(tick,20000);});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,1400);setTimeout(boot,2800);
+})();
+
+</script>
 </body>
 </html>
