@@ -124,7 +124,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 .feed-item p b{color:var(--jet)}
 
 /* ─── Kanban ─── */
-.kanban{display:grid;grid-template-columns:repeat(5,minmax(220px,1fr));gap:14px;align-items:start}
+.kanban{display:grid;grid-template-columns:repeat(5,minmax(220px,1fr));gap:14px;align-items:start;overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;padding-bottom:10px}
 .kol{background:rgba(20,29,46,.6);border:1px solid var(--line);border-radius:var(--radius);padding:12px;min-height:200px;transition:.15s}
 .kol.over{border-color:var(--jet);background:rgba(76,141,255,.06)}
 .kol-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:0 2px}
@@ -266,7 +266,7 @@ tr:hover td{background:rgba(76,141,255,.04)}
 #mcBar .mc-help:hover{border-color:#EBBA52;color:#EBBA52}
 
 /* push GlobalPath app + iframe below the bar */
-.app{height:calc(100vh - 46px) !important;margin-top:46px}
+.app{min-height:calc(100vh - 46px) !important;height:auto !important;margin-top:46px}
 #academyWrap{position:fixed;top:46px;left:0;right:0;bottom:0;z-index:500;display:none;background:#2A2018}
 #academyWrap iframe{width:100%;height:100%;border:0;display:block}
 #academyWrap .mc-loading{position:absolute;inset:0;display:grid;place-items:center;color:#EBBA52;
@@ -8041,12 +8041,12 @@ C.insertAdjacentHTML('beforeend',`
  </div>
  <div class="sub on" id="osub-tix"><div class="card">
   <h3>Internal Ticketing<span class="tag">Admissions · Visa · Finance · HR · Marketing · IT</span><span></span></h3>
-  <table><tr><th>ID</th><th>Subject</th><th>Dept</th><th>Priority</th><th>SLA</th><th>Assignee</th><th>Status</th></tr>
+  <table id="opsTixTbl"><tr><th>ID</th><th>Subject</th><th>Dept</th><th>Priority</th><th>SLA</th><th>Assignee</th><th>Status</th></tr>
    <tr><td class="mono" style="font-family:var(--font-m)">TKT-881</td><td>Refund approval — Sara M (slab B)</td><td>Finance</td><td><span class="badge b-miss" style="margin:0">URGENT</span></td><td>1h 12m left</td><td>Finance head</td><td><span class="badge b-warn" style="margin:0">AWAITING APPROVAL</span></td></tr>
    <tr><td style="font-family:var(--font-m)">TKT-880</td><td>Leeds portal login not working</td><td>IT</td><td><span class="badge b-warn" style="margin:0">HIGH</span></td><td>3h 40m</td><td>IT desk</td><td><span class="badge b-info" style="margin:0">IN PROGRESS</span></td></tr>
    <tr><td style="font-family:var(--font-m)">TKT-879</td><td>Reissue GST invoice — INV-0311</td><td>Finance</td><td><span class="badge b-info" style="margin:0">MEDIUM</span></td><td>✓ met</td><td>Accounts</td><td><span class="badge b-ok" style="margin:0">RESOLVED</span></td></tr>
    <tr><td style="font-family:var(--font-m)">TKT-878</td><td>Escalation: Rahul K idle 4 days</td><td>Admissions</td><td><span class="badge b-miss" style="margin:0">URGENT</span></td><td>0h 44m </td><td>Branch admin</td><td><span class="badge b-warn" style="margin:0">ESCALATED L2</span></td></tr></table>
-  <button class="btn" style="margin-top:12px" onclick="toast('Ticket created · SLA timer started · dept auto-routed')">+ New ticket</button>
+  <button class="btn" style="margin-top:12px" onclick="opsNewTicket()">+ New ticket</button>
  </div></div>
  <div class="sub" id="osub-kb"><div class="card">
   <h3>Knowledge Base<span class="tag">AI semantic search</span></h3>
@@ -8076,7 +8076,7 @@ C.insertAdjacentHTML('beforeend',`
     <button onclick="fbAdd('','File upload — Transcripts')">File upload</button>
     <button onclick="fbAdd('','Phone — with OTP verify')">Phone + OTP</button>
     <button onclick="fbAdd('','Rating — Service feedback')">Rating</button>
-    <button class="btn" style="width:100%;text-align:center" onclick="toast('Form published → landing page + QR code generated → leads flow into pipeline')">Publish form</button>
+    <button class="btn" style="width:100%;text-align:center" onclick="fbPublish()">Publish form</button>
    </div>
    <div class="fb-prev" id="fbPrev"><p style="color:var(--mist);font-size:12px">Inquiry Form — Sep 2026 intake<br><br>Click components on the left to build.</p></div>
   </div>
@@ -18698,6 +18698,343 @@ body.student-mode .content{padding-top:22px}
   /* reliable: keep the student meeting/notif card in sync + bell present */
   setInterval(function(){ ensureBell(); if(session().role==='Student'&&document.getElementById('page-myportal')&&document.getElementById('page-myportal').classList.contains('on'))studentNotifs(); },900);
 })();
+
+</script>
+
+<style id="v74Style">
+/* V74 — document requests + staff inbox */
+.sd-req{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.sd-req:last-child{border-bottom:0}
+.sd-req-t{flex:1;min-width:0}
+.sd-up{cursor:pointer;white-space:nowrap;font-size:12px;font-weight:600;color:#211D35;background:linear-gradient(90deg,#D3F56A,#BCEB3F);border-radius:9px;padding:8px 13px}
+.sd-doneh{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--mist,#6E688A);margin:12px 0 6px}
+.sd-done{font-size:12.5px;color:var(--paper,#211D35);padding:3px 0}
+.sd-ok{color:#2E9B5B;font-weight:800}
+.sd-list{display:flex;flex-direction:column;gap:12px}
+.sd-block{padding:14px 16px}
+.sd-bh{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.sd-reqtags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.sd-reqtag{font-size:10.5px;font-weight:600;color:#B58A00;background:rgba(235,186,82,.14);border-radius:20px;padding:3px 10px}
+.sd-reqtag.ok{color:#2E7D5B;background:rgba(70,227,176,.14)}
+.sd-files{display:flex;flex-direction:column;gap:7px}
+.sd-f{display:flex;align-items:center;gap:11px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2,#F3F1FA)}
+
+</style>
+<script id="v74Script">
+(function(){
+  if(window.__V74)return; window.__V74=1;
+  /* ═══ V74 — document requests + staff visibility. Staff request a document
+     from a student; the student sees it in their portal, picks it, uploads and
+     submits; staff see every uploaded file in a "Student Documents" inbox and
+     both sides get notified. ═══ */
+  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function session(){return get('gp-session',{})||{};}
+  function isStaff(){return (session().role||'')!=='Student';}
+  function creds(){return get('gp-credentials',[])||[];}
+  function master(){return window.__DB_MASTER||[];}
+  function stamp(){var d=new Date();return d.toISOString().slice(0,10)+' '+d.toTimeString().slice(0,5);}
+  function uid(p){return (p||'r')+Date.now().toString(36)+Math.floor(Math.random()*1e4);}
+  function fmtSize(b){b=+b||0;return b<1024?b+' B':b<1048576?(b/1024).toFixed(0)+' KB':(b/1048576).toFixed(1)+' MB';}
+  function notify(u,t,b){try{if(window.__notify)window.__notify(u,t,b);}catch(e){}}
+  function userForName(nm){var c=creds().find(function(x){return (x.name||'').toLowerCase()===String(nm||'').toLowerCase()&&x.role!=='Student';});return c?c.u:'';}
+  function admins(){return creds().filter(function(c){return c.role==='Admin';}).map(function(c){return c.u;});}
+  function studentUserFor(leadId){var c=creds().find(function(x){return x.role==='Student'&&x.leadId===leadId;});return c?c.u:'';}
+
+  var STD_DOCS=['Passport','10th Certificate','+2 Certificate','Degree Certificate','Consolidated Mark List','Passport-size Photo','IELTS / OET Score','Experience Certificate','Nursing Council Registration','Police Clearance Certificate','Financial Documents','Offer Letter','Visa Documents','German Language Certificate','Other'];
+
+  var RK='gp-doc-requests', UK='gp-student-uploads';
+  function reqs(id){return (get(RK,{})||{})[id]||[];}
+  function ups(id){return (get(UK,{})||{})[id]||[];}
+  function allWithActivity(){
+    var r=get(RK,{})||{}, u=get(UK,{})||{}, ids={};
+    Object.keys(r).forEach(function(k){ids[k]=1;});Object.keys(u).forEach(function(k){ids[k]=1;});
+    /* also include every student who has a login */
+    creds().forEach(function(c){if(c.role==='Student'&&c.leadId)ids[c.leadId]=1;});
+    return Object.keys(ids);
+  }
+
+  /* ══ STAFF: request a document ══ */
+  window.sdRequest=function(leadId){
+    var l=master().find(function(x){return x.id===leadId;})||{id:leadId,name:'Student'};
+    if(!document.getElementById('sdReqBg'))document.body.insertAdjacentHTML('beforeend','<div class="docm-bg" id="sdReqBg" onclick="sdReqClose()"></div><div class="docm" id="sdReqM" style="width:min(460px,94vw)"></div>');
+    document.getElementById('sdReqM').innerHTML='<div class="docm-h"><div><h2>Request a document</h2><div class="sub">from '+esc(l.name)+'</div></div><button class="docm-x" onclick="sdReqClose()">✕</button></div>'+
+      '<div style="padding:16px 20px;display:flex;flex-direction:column;gap:11px">'+
+      '<label class="mt-fl">Which document<select class="v34-in" id="sdReqDoc">'+STD_DOCS.map(function(d){return '<option>'+esc(d)+'</option>';}).join('')+'</select></label>'+
+      '<label class="mt-fl">Note to the student (optional)<input class="v34-in" id="sdReqNote" placeholder="e.g. clear scan, both sides"></label>'+
+      '<button class="v34-btn gold" onclick="sdReqSave(\''+esc(leadId)+'\')">Send request</button></div>';
+    document.getElementById('sdReqBg').classList.add('on');document.getElementById('sdReqM').classList.add('on');
+  };
+  window.sdReqClose=function(){var b=document.getElementById('sdReqBg'),m=document.getElementById('sdReqM');if(b)b.classList.remove('on');if(m)m.classList.remove('on');};
+  window.sdReqSave=function(leadId){
+    var l=master().find(function(x){return x.id===leadId;})||{name:'Student'};
+    var doc=(document.getElementById('sdReqDoc')||{}).value||'Document', note=(document.getElementById('sdReqNote')||{}).value||'';
+    var all=get(RK,{})||{}; all[leadId]=all[leadId]||[];
+    all[leadId].push({id:uid('req'),doc:doc,note:note,by:session().name||'Staff',byRole:session().role||'',byU:session().u,at:stamp(),status:'requested'});
+    set(RK,all);
+    var su=studentUserFor(leadId); if(su)notify(su,'Document requested: '+doc,(note?note+' · ':'')+'Please upload it in your portal.');
+    sdReqClose(); toastX('Requested '+doc+' from '+l.name); if(document.getElementById('page-studocs'))renderStuDocs();
+  };
+
+  /* ══ STUDENT: submit an upload for a request ══ */
+  window.sdSubmit=function(reqId,inp){
+    var s=session(); var leadId=s.leadId; var f=inp.files&&inp.files[0]; if(!f)return;
+    if(f.size>6*1024*1024){toastX('Please keep files under 6 MB');inp.value='';return;}
+    var r=new FileReader();
+    r.onload=function(){
+      var uAll=get(UK,{})||{}; uAll[leadId]=uAll[leadId]||[];
+      var fid=uid('up');
+      uAll[leadId].push({id:fid,name:f.name,type:f.type||'file',size:f.size,data:r.result,at:stamp(),reqId:reqId});
+      set(UK,uAll);
+      var rAll=get(RK,{})||{}; var arr=rAll[leadId]||[]; var req=arr.find(function(x){return x.id===reqId;});
+      if(req){req.status='submitted';req.fileId=fid;req.submittedAt=stamp();set(RK,rAll);}
+      var l=master().find(function(x){return x.id===leadId;})||{};
+      /* notify the requester + counsellor + admins */
+      var targets={}; if(req&&req.byU)targets[req.byU]=1; var cu=userForName(l.counselor); if(cu)targets[cu]=1; admins().forEach(function(a){targets[a]=1;});
+      Object.keys(targets).forEach(function(u){notify(u,'Document submitted by '+(s.name||'a student'),(req?req.doc:'A document')+' uploaded ('+f.name+')');});
+      inp.value=''; toastX('Submitted '+(req?req.doc:f.name)); if(window.__sdStudent)window.__sdStudent();
+    };
+    r.readAsDataURL(f);
+  };
+
+  /* ══ STUDENT portal card ══ */
+  function studentCard(){
+    var pg=document.getElementById('page-myportal'); if(!pg||session().role!=='Student')return;
+    var l=master().find(function(x){return x.id===session().leadId;}); if(!l)return;
+    var pending=reqs(l.id).filter(function(r){return r.status==='requested';});
+    var done=reqs(l.id).filter(function(r){return r.status==='submitted';});
+    var html='<h3>Documents requested from you</h3><div class="sub">Your counsellor / documentation team asked for these. Upload and submit each one.</div>'+
+      (pending.length?pending.map(function(r){return '<div class="sd-req"><div class="sd-req-t"><b>'+esc(r.doc)+'</b>'+(r.note?' <span class="v34-dim">· '+esc(r.note)+'</span>':'')+'<div class="v34-dim" style="font-size:10.5px">requested by '+esc(r.by)+' · '+esc(r.at)+'</div></div>'+
+        '<label class="sd-up">Upload &amp; submit<input type="file" accept="application/pdf,image/*" style="display:none" onchange="sdSubmit(\''+esc(r.id)+'\',this)"></label></div>';}).join('')
+        :'<div class="v34-dim" style="font-size:12.5px;padding:6px 0">No documents requested right now.</div>')+
+      (done.length?'<div class="sd-doneh">Submitted</div>'+done.map(function(r){return '<div class="sd-done"><span class="sd-ok">✓</span> '+esc(r.doc)+' <span class="v34-dim">· '+esc(r.submittedAt||'')+'</span></div>';}).join(''):'');
+    var card=document.getElementById('sdStudentCard');
+    if(!card){card=document.createElement('div');card.className='mp-card';card.id='sdStudentCard';card.innerHTML=html;
+      var status=[].find.call(pg.querySelectorAll('.mp-card h3'),function(h){return /application status/i.test(h.textContent);});
+      if(status&&status.parentNode)status.parentNode.insertAdjacentElement('afterend',card);else pg.appendChild(card);
+    } else card.innerHTML=html;
+  }
+  window.__sdStudent=studentCard;
+
+  /* ══ STAFF page: Student Documents inbox ══ */
+  var sdQ='';
+  function renderStuDocs(){
+    var pg=document.getElementById('page-studocs'); if(!pg)return;
+    if(!isStaff()){pg.innerHTML='<div class="v34-head"><div><div class="v34-eyebrow">Restricted</div><p class="v34-sub">Staff only.</p></div></div>';return;}
+    var ids=allWithActivity().map(function(id){return master().find(function(x){return x.id===id;})||{id:id,name:'(unknown)'};});
+    var list=ids.filter(function(l){return !sdQ||((l.name||'')+(l.id||'')+(l.course||'')).toLowerCase().indexOf(sdQ.toLowerCase())>=0;});
+    var totalUp=0, totalReq=0; Object.values(get(UK,{})||{}).forEach(function(a){totalUp+=a.length;}); Object.values(get(RK,{})||{}).forEach(function(a){totalReq+=a.filter(function(r){return r.status==='requested';}).length;});
+    pg.innerHTML='<div class="v34-head"><div><div class="v34-eyebrow">Documentation · student uploads</div>'+
+      '<p class="v34-sub">Every file students upload lands here. Request a document and it appears in their portal; when they submit it you get notified and can view it.</p></div></div>'+
+      '<div class="lk-kpis"><div class="lk-kpi"><b>'+list.length+'</b><span>Students</span></div><div class="lk-kpi"><b style="color:#2E7D5B">'+totalUp+'</b><span>Files uploaded</span></div><div class="lk-kpi"><b style="color:#B58A00">'+totalReq+'</b><span>Pending requests</span></div></div>'+
+      '<div class="lk-filters"><input class="v34-in" placeholder="Search student / id / course…" value="'+esc(sdQ)+'" oninput="sdSearch(this.value)"></div>'+
+      '<div class="sd-list">'+(list.length?list.map(studentBlock).join(''):'<div class="qc-card" style="text-align:center;color:var(--mist);padding:24px">No students yet.</div>')+'</div>';
+  }
+  function studentBlock(l){
+    var u=ups(l.id), r=reqs(l.id);
+    var files=u.length?u.map(function(f){var ic=/pdf/i.test(f.type)?'PDF':/image\//.test(f.type)?'IMG':'FILE';return '<div class="sd-f"><span class="mp-up-ic">'+ic+'</span><div class="mp-up-meta"><b>'+esc(f.name)+'</b><span>'+fmtSize(f.size)+' · '+esc(f.at)+(f.reqId?' · for a request':'')+'</span></div><button class="mp-up-a" onclick="sdView(\''+esc(l.id)+'\',\''+esc(f.id)+'\')">View</button></div>';}).join(''):'<div class="v34-dim" style="font-size:11.5px;padding:4px 0">No files uploaded yet.</div>';
+    var reqRows=r.length?r.map(function(x){return '<span class="sd-reqtag '+(x.status==='submitted'?'ok':'')+'">'+esc(x.doc)+' · '+(x.status==='submitted'?'submitted':'awaiting')+'</span>';}).join(''):'';
+    return '<div class="qc-card sd-block"><div class="sd-bh"><div><b>'+esc(l.name)+'</b> <span class="v34-dim" style="font-size:11px">'+esc(l.id)+' · '+esc(l.course||'')+' · '+esc(l.counselor||'')+'</span></div>'+
+      '<button class="v34-btn gold" style="padding:6px 12px;font-size:12px" onclick="sdRequest(\''+esc(l.id)+'\')">+ Request a document</button></div>'+
+      (reqRows?'<div class="sd-reqtags">'+reqRows+'</div>':'')+
+      '<div class="sd-files">'+files+'</div></div>';
+  }
+  window.sdSearch=function(v){sdQ=v;renderStuDocs();var i=document.querySelector('#page-studocs .lk-filters input');if(i){i.focus();i.value=v;i.setSelectionRange(v.length,v.length);}};
+  window.sdView=function(leadId,fid){var f=ups(leadId).find(function(x){return x.id===fid;});if(!f)return;var w=window.open();if(w){if(/image\//.test(f.type))w.document.write('<img src="'+f.data+'" style="max-width:100%">');else w.location=f.data;}};
+
+  /* ══ nav + boot ══ */
+  function boot(){
+    var content=document.querySelector('.content'), side=document.querySelector('.side');
+    if(content&&!document.getElementById('page-studocs')){var d=document.createElement('div');d.className='page';d.id='page-studocs';content.appendChild(d);}
+    try{if(typeof titles!=='undefined')titles.studocs=['Student Documents','uploads · requests'];}catch(e){}
+    if(side&&isStaff()&&!document.querySelector('.nav-btn[data-page=studocs]')){
+      var ref=document.querySelector('.nav-btn[data-page=docdesk]')||document.querySelector('.nav-btn[data-page=links]');
+      var b=document.createElement('button');b.className='nav-btn';b.dataset.page='studocs';b.setAttribute('onclick',"go('studocs',this)");
+      b.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M9 13h6M9 17h6"/></svg>Student Documents';
+      if(ref&&ref.parentNode)ref.parentNode.insertBefore(b,ref.nextSibling);else if(side.querySelector('.side-foot'))side.insertBefore(b,side.querySelector('.side-foot'));else side.appendChild(b);
+    }
+    if(typeof window.go==='function'&&!window.__v74Go){window.__v74Go=1;var _go=window.go;window.go=function(p,btn){_go(p,btn);if(p==='studocs')setTimeout(renderStuDocs,50);};}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,1400);setTimeout(boot,2800);
+  /* student portal request card kept in sync */
+  setInterval(function(){ if(session().role==='Student'&&document.getElementById('page-myportal')&&document.getElementById('page-myportal').classList.contains('on'))studentCard(); },800);
+})();
+
+</script>
+
+<style id="v75Style">
+/* V75 — no new styles (reuses modal + badge classes) */
+.v75-x{display:none}
+
+</style>
+<script id="v75Script">
+(function(){
+  if(window.__V75)return; window.__V75=1;
+  /* ═══ V75 — make the Ops Suite Ticketing + Form Publisher actually work
+     (they were static mockups whose buttons only flashed a toast). ═══ */
+  function get(k,f){try{var v=localStorage.getItem(k);return v==null?f:JSON.parse(v);}catch(e){return f;}}
+  function set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function toastX(m){try{toast(m);}catch(e){}}
+  function stamp(){var d=new Date();return d.toISOString().slice(0,10)+' '+d.toTimeString().slice(0,5);}
+  function newId(pfx){return pfx+'-'+String(Date.now()).slice(-5);}
+  function modal(html,w){var id='v75M';if(!document.getElementById(id+'Bg'))document.body.insertAdjacentHTML('beforeend','<div class="docm-bg" id="'+id+'Bg" onclick="v75Close()"></div><div class="docm" id="'+id+'" style="width:'+(w||'min(460px,94vw)')+'"></div>');document.getElementById(id).innerHTML=html;document.getElementById(id+'Bg').classList.add('on');document.getElementById(id).classList.add('on');}
+  window.v75Close=function(){var b=document.getElementById('v75MBg'),m=document.getElementById('v75M');if(b)b.classList.remove('on');if(m)m.classList.remove('on');};
+
+  /* ── Ticketing ── */
+  function priBadge(p){return p==='URGENT'?'b-miss':p==='HIGH'?'b-warn':'b-info';}
+  window.opsNewTicket=function(){
+    modal('<div class="docm-h"><div><h2>New ticket</h2><div class="sub">routes to the department + starts the SLA timer</div></div><button class="docm-x" onclick="v75Close()">✕</button></div>'+
+      '<div style="padding:16px 20px;display:flex;flex-direction:column;gap:11px">'+
+      '<label class="mt-fl">Subject<input class="v34-in" id="tkSubj" placeholder="Describe the issue"></label>'+
+      '<div class="mt-2" style="grid-template-columns:1fr 1fr"><label class="mt-fl">Department<select class="v34-in" id="tkDept">'+['Admissions','Visa','Finance','HR','Marketing','IT'].map(function(d){return '<option>'+d+'</option>';}).join('')+'</select></label>'+
+      '<label class="mt-fl">Priority<select class="v34-in" id="tkPri"><option>URGENT</option><option selected>HIGH</option><option>MEDIUM</option></select></label></div>'+
+      '<label class="mt-fl">Assignee (optional)<input class="v34-in" id="tkWho" placeholder="e.g. IT desk"></label>'+
+      '<button class="v34-btn gold" onclick="opsSaveTicket()">Create ticket</button></div>');
+  };
+  window.opsSaveTicket=function(){
+    var subj=(document.getElementById('tkSubj')||{}).value; if(!subj||!subj.trim()){toastX('Enter a subject');return;}
+    var dept=(document.getElementById('tkDept')||{}).value||'Admissions', pri=(document.getElementById('tkPri')||{}).value||'HIGH', who=(document.getElementById('tkWho')||{}).value||'Unassigned';
+    var id=newId('TKT'), tbl=document.getElementById('opsTixTbl');
+    var tickets=get('gp-ops-tickets',[])||[]; tickets.unshift({id:id,subj:subj.trim(),dept:dept,pri:pri,who:who,at:stamp()}); set('gp-ops-tickets',tickets);
+    if(tbl){var hdr=tbl.querySelector('tr');
+      var row='<tr><td style="font-family:var(--font-m)">'+esc(id)+'</td><td>'+esc(subj)+'</td><td>'+esc(dept)+'</td><td><span class="badge '+priBadge(pri)+'" style="margin:0">'+esc(pri)+'</span></td><td>SLA started</td><td>'+esc(who)+'</td><td><span class="badge b-info" style="margin:0">OPEN</span></td></tr>';
+      if(hdr)hdr.insertAdjacentHTML('afterend',row); else tbl.insertAdjacentHTML('beforeend',row);
+    }
+    v75Close(); toastX('Ticket '+id+' created · routed to '+dept+' · SLA timer started');
+  };
+  /* re-add any tickets created earlier when the Ops page (re)renders */
+  function restoreTickets(){
+    var tbl=document.getElementById('opsTixTbl'); if(!tbl||tbl.__v75)return; tbl.__v75=1;
+    var tickets=get('gp-ops-tickets',[])||[]; var hdr=tbl.querySelector('tr');
+    tickets.slice().reverse().forEach(function(t){var row='<tr><td style="font-family:var(--font-m)">'+esc(t.id)+'</td><td>'+esc(t.subj)+'</td><td>'+esc(t.dept)+'</td><td><span class="badge '+priBadge(t.pri)+'" style="margin:0">'+esc(t.pri)+'</span></td><td>SLA started</td><td>'+esc(t.who)+'</td><td><span class="badge b-info" style="margin:0">OPEN</span></td></tr>';if(hdr)hdr.insertAdjacentHTML('afterend',row);});
+  }
+
+  /* ── Form publisher ── */
+  window.fbPublish=function(){
+    var prev=document.getElementById('fbPrev'); var fields=prev?[].map.call(prev.querySelectorAll('.fb-field'),function(f){return f.childNodes[0]?f.childNodes[0].textContent.trim():f.textContent.replace('remove ✕','').trim();}):[];
+    fields=fields.filter(Boolean);
+    if(!fields.length){toastX('Add a few fields first, then publish');return;}
+    var id=newId('FORM'); var link=location.origin+location.pathname+'?form='+id;
+    var forms=get('gp-forms',[])||[]; forms.unshift({id:id,title:'Inquiry Form — Sep 2026 intake',fields:fields,at:stamp(),link:link}); set('gp-forms',forms);
+    modal('<div class="docm-h"><div><h2>Form published</h2><div class="sub">shareable link generated · leads will flow into the pipeline</div></div><button class="docm-x" onclick="v75Close()">✕</button></div>'+
+      '<div style="padding:16px 20px;display:flex;flex-direction:column;gap:11px">'+
+      '<div class="v34-dim" style="font-size:12px">'+fields.length+' field(s): '+esc(fields.join(', '))+'</div>'+
+      '<label class="mt-fl">Public form link<input class="v34-in" readonly value="'+esc(link)+'" onclick="this.select()"></label>'+
+      '<div class="v34-dim" style="font-size:11px">Share this link or its QR code on your ads and landing pages. Submissions arrive as new leads.</div>'+
+      '<button class="v34-btn gold" onclick="v75Close()">Done</button></div>');
+    toastX('Form '+id+' published');
+  };
+
+  function boot(){
+    if(typeof window.go==='function'&&!window.__v75Go){window.__v75Go=1;var _go=window.go;window.go=function(p,b){_go(p,b);if(p==='ops')setTimeout(restoreTickets,80);};}
+    setTimeout(restoreTickets,900);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,1500);
+})();
+
+</script>
+
+<style id="v76Style">
+/* V76 — SOP controls reuse .mt-fl / .v34-in */
+#sopControls .v34-in{width:100%;margin-top:4px}
+
+</style>
+<script id="v76Script">
+(function(){
+  if(window.__V76)return; window.__V76=1;
+  /* ═══ V76 — dynamic SOP generator: pick any student + add extra info, and the
+     Statement of Purpose is drafted from THEIR real data (was hardcoded to
+     "Meera Thomas"). ═══ */
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function master(){return window.__DB_MASTER||[];}
+  function val(id){return (document.getElementById(id)||{}).value||'';}
+  var selLead=null;
+
+  function inject(){
+    var card=document.querySelector('#page-ai .card'); if(!card)return;
+    var h=card.querySelector('h3'); if(!h||!/SOP Draft Generator/.test(h.textContent))return;
+    if(card.querySelector('#sopControls'))return;
+    var ctx=card.querySelector('p'); /* the "Context loaded from profile" line */
+    var leads=master().slice(0,600);
+    var html='<div id="sopControls" style="display:flex;flex-direction:column;gap:9px;margin-bottom:12px">'+
+      '<datalist id="sopLeadDL">'+leads.map(function(l){return '<option value="'+esc(l.id)+' - '+esc(l.name)+'">';}).join('')+'</datalist>'+
+      '<label class="mt-fl">Student<input class="v34-in" id="sopStudent" list="sopLeadDL" placeholder="Search a student by name or id…" oninput="sopPick(this.value)"></label>'+
+      '<div class="mt-2" style="grid-template-columns:1fr 1fr"><label class="mt-fl">Target university<input class="v34-in" id="sopUni" placeholder="e.g. University of Leeds"></label>'+
+      '<label class="mt-fl">Work experience<input class="v34-in" id="sopExp" placeholder="e.g. 18 months Data Analyst"></label></div>'+
+      '<label class="mt-fl">Key achievements<input class="v34-in" id="sopAch" placeholder="e.g. published paper, topper, award"></label>'+
+      '<label class="mt-fl">Motivation / career goal<textarea class="v34-in mt-ta" id="sopGoal" placeholder="Why this course and what you aim to become"></textarea></label>'+
+    '</div>';
+    if(ctx)ctx.insertAdjacentHTML('afterend',html); else card.insertAdjacentHTML('afterbegin',html);
+  }
+  window.sopPick=function(v){
+    var id=String(v).split(' - ')[0].trim();
+    selLead=master().find(function(l){return l.id===id||((l.id+' - '+l.name)===v);})||master().find(function(l){return (l.name||'').toLowerCase()===String(v).toLowerCase();})||null;
+    var ctx=document.querySelector('#page-ai .card p');
+    if(ctx&&selLead)ctx.textContent='Context loaded: '+selLead.name+' · '+(selLead.course||'')+' · '+(selLead.country||'')+' · '+(selLead.branch||'');
+  };
+
+  function buildSOP(l,uni,exp,ach,goal){
+    var name=l.name||'the applicant', course=l.course||'my chosen programme', country=l.country||'abroad';
+    uni=uni||'my preferred university'; exp=exp||'relevant academic projects and internships'; ach=ach||'a consistent academic record and active participation in co-curricular activities';
+    goal=goal||('build a strong career in '+course+' and contribute meaningfully to the field');
+    return 'STATEMENT OF PURPOSE\n\n'+
+      'I, '+name+', am writing to express my sincere interest in pursuing '+course+' at '+uni+'. This programme aligns closely with my academic interests and long-term ambitions, and I am confident it is the right next step in my journey.\n\n'+
+      'Academic & professional background: My preparation for this course has been shaped by '+exp+'. These experiences gave me practical exposure and sharpened my problem-solving ability, motivating me to deepen my expertise through advanced study.\n\n'+
+      'Achievements: I am proud of '+ach+', which reflect my commitment and discipline. They have prepared me to handle the rigour of a demanding academic environment.\n\n'+
+      'Why '+uni+' and '+country+': The curriculum, faculty and industry connections at '+uni+' make it an ideal place to grow. Studying in '+country+' will expose me to a global perspective and a strong professional network in my field.\n\n'+
+      'Career goals: After completing '+course+', I intend to '+goal+'. I am certain that this programme will equip me with the knowledge, skills and confidence to achieve these goals.\n\n'+
+      'I am grateful for the opportunity to be considered and look forward to contributing to the academic community.\n\nSincerely,\n'+name;
+  }
+
+  var running=false;
+  window.genSOP=function(){
+    if(running)return;
+    var out=document.getElementById('sopOut'); if(!out)return;
+    if(!selLead){ /* try to parse whatever is typed */ var v=val('sopStudent'); if(v)window.sopPick(v); }
+    if(!selLead){ out.textContent='Pick a student above, then press Generate.'; return; }
+    running=true; out.classList.add('typing');
+    var text=buildSOP(selLead,val('sopUni'),val('sopExp'),val('sopAch'),val('sopGoal'));
+    out.style.whiteSpace='pre-wrap'; out.textContent=''; var i=0;
+    (function type(){ if(i<text.length){out.textContent+=text.slice(i,i+4);i+=4;setTimeout(type,8);} else {out.classList.remove('typing');running=false;try{toast('SOP draft generated for '+selLead.name+' · '+text.split(/\s+/).length+' words');}catch(e){}} })();
+  };
+
+  function boot(){
+    if(typeof window.go==='function'&&!window.__v76Go){window.__v76Go=1;var _go=window.go;window.go=function(p,b){_go(p,b);if(p==='ai')setTimeout(inject,80);};}
+    setTimeout(inject,900);setTimeout(inject,2000);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+  setTimeout(boot,1500);
+})();
+
+</script>
+
+<style id="v77Style">
+/* V77 — safe, additive UI/UX polish */
+/* discoverable thin scrollbars (esp. the leads kanban horizontal scroll) */
+.kanban::-webkit-scrollbar,.v34-tblwrap::-webkit-scrollbar,.mt-picklist::-webkit-scrollbar,.np-body::-webkit-scrollbar,.sd-list::-webkit-scrollbar{height:9px;width:9px}
+.kanban::-webkit-scrollbar-thumb,.v34-tblwrap::-webkit-scrollbar-thumb,.mt-picklist::-webkit-scrollbar-thumb,.np-body::-webkit-scrollbar-thumb,.sd-list::-webkit-scrollbar-thumb{background:rgba(124,92,224,.35);border-radius:20px}
+.kanban::-webkit-scrollbar-thumb:hover{background:rgba(124,92,224,.6)}
+.kanban::-webkit-scrollbar-track{background:rgba(124,92,224,.06);border-radius:20px}
+/* subtle hover lift on cards (transform only → cannot shift layout) */
+.qc-card,.lk-card,.pv-kpi,.pv-card,.mp-card{transition:transform .16s ease,box-shadow .16s ease}
+.qc-card:hover,.lk-card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(124,92,224,.10)}
+/* clearer input focus */
+.v34-in:focus{outline:none;border-color:#7C5CE0;box-shadow:0 0 0 3px rgba(124,92,224,.12)}
+/* primary buttons: gentle press + hover */
+.v34-btn{transition:transform .12s ease,filter .15s ease}
+.v34-btn:hover{filter:brightness(1.03)}
+.v34-btn:active{transform:translateY(1px)}
+/* keep the horizontal-scroll hint visible on the kanban even at rest */
+.kanban{scrollbar-width:thin;scrollbar-color:rgba(124,92,224,.4) rgba(124,92,224,.08)}
+
+</style>
+<script id="v77Script">
+(function(){ if(window.__V77)return; window.__V77=1; /* V77 is CSS-only polish */ })();
 
 </script>
 </body>
